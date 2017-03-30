@@ -1,0 +1,1066 @@
+ext4 日志式文件系统
+主分区最多4个，因为每个主分区要占用分区表16B，分区表共64B
+扩展分区，扩展分区只能有一个，并且不能直接被使用
+逻辑分区，逻辑分区是在扩展分区的基础上再划分的，是最终可以被使用的分区。
+
+实验报告：理解MBR
+实验目的：理解MBR分区和GPT分区
+实验内容：fdisk的使用
+
+84434476  
+
+2017/2/24  知识点汇总
+sda3
+hdb5
+sdc1
+legacy
+basic input output system  bios  cmos
+secure boot 
+efi-->uefi  guid 
+Unified Extensible Firmware Interface
+
+x11 窗口图形化协议  xfce（轻量级）kde（定制性最高）  gnome2（使用人数最多的，稳定性最好） unity（ubuntu自带的）  
+
+默认快捷键  ctrl alt t  打开终端
+ctrl shift  t  一个窗口多个终端
+ctrl shift f1-f7  
+ctrl c  终止当前命令
+ctrl l 清屏
+shift  pgup|pgdn    在终端下翻屏
+终端终结者  terminator  
+
+挂载点  /
+
+记住这个概念：在linux中，一切皆文件
+
+bin：  构建系统所需要的最少的指令（常用指令）
+
+boot：  linux（内核）和虚拟文件系统以及操作系统启动所需要的文件
+
+dev：各种设备文件
+
+etc：系统软件和其他软件的配置文件所在路径
+
+home：系统中普通用户的家目录
+
+root：root用户的家目录
+
+lib：库文件存放的路径
+lib64：64位库文件存放的路径
+
+media： 挂载目录
+msic：挂载目录
+mnt：挂载目录
+
+net：和网络有关的文件
+
+opt/usr  可以选择的应用安装目录或者第三方软件安装的路径
+
+proc：进程映像的映射（不占用硬盘资源）
+
+sbin：和系统操作相关的指令
+
+selinux：基于安全的一套策略
+
+tmp：类似于windows的temp（临时文件），其实就是内存中的一些文件的映射
+
+var：所有的应用的数据存放此处，比如日志等。通常大型的服务都会专门为这个目录挂载专用的存储设备
+
+[root@localhost ~]# 
+[用户名@主机名 当前所在的目录]#
+注：如果提示符是#结尾，表示这个用户是root，如果是$,说明是普通用户
+
+指令 -选项   参数
+ls  -help   表示分别由选项h、e、l、p结合
+ls  --help 两个-表示后面的选项就是一个单词，这个单词就是选项
+ls  -a 表示查看所有文件，在linux系统中，隐藏文件的文件名以.开头
+
+2017/02/26
+pgup|pgdn  查看文档一屏一屏
+enter   查看文档一行一行
+ctrl d  退出终端
+alias ls=‘xxx’   自定义指令
+man 1 ls   查看ls的帮助文档
+whatis ls   查看ls的描述
+which  ls   查看ls的来历
+rm  -f 等同于  rm --force
+在手册中查看内容时可以通过/关键词 来检索重要内容，按n是将检索到的关键词从上往下查看，按shift+n是从下往上，按q退出manual page
+
+Centos6 的启动流程：
+1、POST poweron secure test
+cmos软件 bios固件
+2、BOOT 
+3、识别MBR 512B  
+446（引导加载器）：GRUB LILO
+64  分区表（每个分区占用16B）
+2 magic number魔数
+4、读取stage1 
+stage1_5 识别各种文件系统
+stage2  出现的就是grub界面
+5、读取grub.conf 这个文件决定了grub界面的所有内容
+6、根据grub.conf的配置读取内核和虚拟文件系统
+7、启动init 父进程(PID 1)   /sbin/init   
+8、读取配置文件/etc/inittab(选择进入系统的类型 runlevel)
+#   0 - halt (Do NOT set initdefault to this)
+#   1 - Single user mode  单用户模式
+#   2 - Multiuser, without NFS (The same as 3, if you do not have networking)  多用户模式
+#   3 - Full multiuser mode 没有图形化的，只能用终端
+#   4 - unused
+#   5 - X11  图形化
+#   6 - reboot (Do NOT set initdefault to this)
+9、根据inittab中定义的启动级别，去相应的目录启动需要的脚本。比如是0级别，就去/etc/rc0.d目录下启动所有脚本
+同时需要执行fstab和rc.local
+注：fstab是系统自动挂载需要的配置
+
+sysV init 启动过程中的故障修复
+1、root密码的破解
+按e修改内容init 1 或 single 或 s
+按b引导内核进入单用户模式
+passwd   
+
+2、内核升级失败的修复
+/boot/vmlinuz***  内核
+/boot/initrd***   虚拟文件系统
+chroot  /mnt/sysimage  将光盘中的这个路径切换为/
+mount /dev/cdrom /mnt  挂载光盘到当前的mnt目录中，这个mnt是硬盘中的mnt目录
+rpm -ivh  参数i表示安装 --force
+rpm -ivh --force  kernel-2.****.rpm
+
+3、mbr分区中的grub修复（先linux，后window）
+进入救援模式，chroot /mnt/sysimage
+grub-install /dev/sda 
+
+
+4、boot的修复，救援模式
+
+5、grub的加密
+grub-md5-crypt
+生成的md5码添加到grub.cfg的title下面
+password --md5  “*****”
+
+2017/3/3  rhel7的启动
+systemd  取代了 sysV init
+ubuntu  upstart  epach muda 
+init  rc5.d
+苹果mac os launchd
+gnu lgpl 
+cgroup  为每个进程分配一个cgroup
+systemd 使用target来控制系统服务的启动
+rhel6中使用runlevel，7中用target替代
+第一个启动的通常都是default.target
+对比两个系统的启动级别
+0              poweroff.target 
+1              resuce.target 
+2              multi-user.target 
+3
+4
+5              graphical.target    
+6
+
+ systemctl set-default multi-user.target    设置默认启动服务，下次启动生效
+ 
+ systemd-analyze time  查看启动时间 
+ systemctl isolate graphical.target  切换进入其他级别  
+ systemctl list-units  查看系统中存在的服务
+ systemctl list-units --type=service 查看后缀service的服务
+ /usr/lib/systemd/system target路径
+ /etc/systemd/system/default.target  主配置文件
+ 132  systemctl is-active sshd.service 
+ 查看服务是否启动
+  133  systemctl stop sshd.service 
+  关闭服务
+  136  ps -aux |grep sshd   查看sshd进程
+  137  systemctl start sshd.service
+  启动进程
+service sshd stop
+
+修改grub.cfg来决定系统的启动顺序等需要修改/etc/default/grub,然后使用命令grub2-mkconfig -o  /boot/grub2/来更新grub.cfg的配置，如果是debain类的系统中使用update-grub2来更新
+[root@localhost grub.d]# grub2-set-default 1
+
+rescue 模式 单用户模式   需要密码
+emergency 模式
+
+破解root密码第一种  init=/bin/sh  
+crtl+x 引导进入
+进入后sh2.4#  此时输入passwd是无法修改成功的
+sh2.4#  mount -o  remount，rw /
+mount是挂载，参数-o是额外的选项，选项就是remount（重新挂载），rw表示权限
+sh2.4#  passwd 修改密码，成功
+sh2.4#  touch /.autorelabel 
+创建这个文件的目的是为了让selinux自动打标签
+sh2.4#  exec /sbin/init
+
+2017/3/5  
+1、第二种hel7下破解root密码的方式（推荐
+内核后面跟上参数  rd.break
+mount -o remount,rw  /sysroot/  重新挂载并要求sysroot可以读写
+chroot /sysroot/  切换根
+passwd  修改密码
+load_policy -i  加载selinux
+chcon -t shadow_t /etc/shadow   修改shadow的上下文
+touch /.autorelabel  重建selinux标签
+exit  reboot
+
+2、rhel7中grub的修复
+通过光盘引导
+chroot /mnt/sysimage  切换根
+grub2-install /dev/sda   安装grub
+
+3、rhel7中内核等引导文件的修复
+通过光盘引导
+chroot /mnt/sysimage  切换根
+cd /  进入/
+mount /dev/cdrom  /media  挂载光盘到media目录中
+rpm -ivh --force /media/Package/kernel-3.10.rpm
+安装内核，安装完成后，boot目录中会生成内核和虚拟文件系统
+grub2-install /dev/sda  安装grub2，安装成功后会在/boot目录下生成grub所需要的文件，但是缺少grub.cfg配置文件
+grub2-mkconfig -o /boot/grub2/grub.cfg
+生成grub.cfg文件
+
+4、添加grub加密
+在/etc/grub.d/00_header 的末尾添加如下内容：
+cat  << EOF
+set superusers="tom"
+password tom  redhat
+EOF
+最后执行更新grub.cfg操作
+grub2-mkconfig -o /boot/grub2/grub.cfg
+
+5、网络基本配置
+[root@centos6 桌面]# cd /etc/sysconfig/network-scripts/ifcfg*
+BOOTPROTO=static
+IPADDR=192.168.24.44
+NETMASK=255.255.255.0
+GATEWAY=192.168.24.254
+DNS1=192.168.24.254
+[root@centos6 network-scripts]# service network restart
+重启网络服务
+[root@centos6 network-scripts]# service NetworkManager stop
+[root@centos6 network-scripts]# chkconfig NetworkManager off
+关闭NetworkManager服务，防止冲突
+注：配置文件的每一个修改，要想生效都必须重启服务
+
+6、硬件检测
+[root@centos6 桌面]# cat /proc/cpuinfo 
+查看cpu信息
+[root@centos6 ~]# lspci
+查看所有的板卡信息
+[root@centos6 ~]# lspci |grep net
+通过管道过滤net方面的内容
+[root@centos6 ~]# cat /proc/meminfo 
+查看内存的信息
+[root@centos6 ~]# lsusb
+查看usb的设备
+[root@centos6 ~]# cat /proc/bus/usb/devices 
+查看usb的设备信息
+[root@centos6 ~]# cat /proc/bus/input/devices 
+查看输入设备的信息
+[root@centos6 ~]# fdisk -l
+查看硬盘信息
+[root@centos6 桌面]# df -hT
+查看硬盘的使用情况
+[root@centos6 桌面]# uname -a
+查看系统的信息
+[root@centos6 桌面]# cat /proc/version 
+查看系统版本信息
+[root@centos6 桌面]# lsb_release  -a
+查看系统的发布信息
+注：lsb是linux的一个核心标准
+[root@centos6 ~]# lsblk
+列出系统中的所有块设备信息
+[root@centos6 ~]# cat /proc/interrupts 
+查看设备中所有的IRQ信号，irq值越小优先级越高
+[root@centos6 ~]# dmidecode -t bios
+查看bios信息
+[root@centos6 ~]# pstree -p |grep udev
+查看udev这个daemons（守护进程），自动生成设备的名称和定义设备如何使用，它在/etc/rc.d/rc.sysinit脚本运行后开始工作。
+etc/udev/rules.d这个目录下存放了系统的规则文件
+[root@centos6 rules.d]# pstree -p |grep hal
+这个daemon是实现程序和设备之间交流的，告诉程序如何使用设备
+
+7、软件安装
+debain： /etc/apt/source.list
+sudo apt-get update  更新源
+sudo apt-get upgrade  更新系统
+sudo apt-get autoremove  自动删除一些不是用的软件包
+
+a、源码编译安装
+优点：定制性高
+缺点：耗时长
+./configure  定制环境
+make   编译
+make install   安装
+
+b、rpm包安装(debain  dpkg)
+优点：简单方便
+缺点：功能无法定制，存在包依赖
+rpm -qa   查看系统中所有的rpm软件包
+rpm -qa  |grep kernel   查看系统中包含kernel字符的软件包
+rpm -ql  kernel*  查看这个包安装的具体路径
+rpm  -qlp  kernel*.rpm  
+根据rpm包查看安装后的路径，通常用于安装前
+rpm -qc  kernel  查看这个软件包的配置文件所在的路径
+rpm -qf  /usr/bin/rz  根据指令逆向找出软件包
+rpm -Uvh  升级内核之类不要使用这个更新方式。U表示更新rpm包，如果包没有安装过，那就安装，如果装过，先卸载，重新安装当前版本。
+rpm  -e tree  卸载软件包
+
+源
+/etc/yum.repos.d/ rhel类系统在这个目录下存放了系统自带的源文件
+/etc/apt/source.list.d/  (debain类系统的源文件)
+
+apt-get update  更新源
+apt-get autoremove  
+
+\ 转义
+
+epel源
+DNF 
+dnf -list  = yum list 
+dnf search tree   = yum search tree
+dnf provides /usr/bin/rz  = yum whatprovides /usr/bin/rz
+根据程序的指令来获取程序的安装包名称
+[root@centos7 /]# dnf list available
+ 列出当前系统可以使用的软件包
+[root@centos7 /]# dnf  check-update 
+检查当前哪些软件包需要更新
+[root@centos7 /]# dnf autoremove 
+自动删除没有依赖关系的独立的无用的包
+
+ ubuntu更新系统：apt-get  upgrade
+ apt-get dist-upgrade
+ 
+ apt-get autoreomve
+ rhel更新系统  yum update 
+ yum upgrade
+ 
+ 2017/3/12
+ 通过终端管理服务器的软件：
+ putty、secureCRT、Xmanger（xshell）
+ 非对称加密（RSA）--对称加密
+
+ 
+ yum  install  gcc  用于库依赖，必须安装
+yum install  lrzsz  用于终端远程上传和下载到服务器，必须保证终端具备modem协议，通常用crt、xshell、putty等使用
+
+ yum install bash-completion
+这个工具用来实现在bash环境中的命令自动补齐
+
+yum install net-tools   提供了ifconfig等网络指令集
+
+2、Linux文件权限和目录配置
+通过ll获取文件的属性，共分为七段：
+权限  硬链接  文件的所有者  文件的所属组 文件大小 文件的修改或创建日期  文件名
+
+-rw-------
+第一位表示文件的类型：
+- 表示普通文件
+b 表示块设备文件（存储）
+c 表示字符型设备文件 （通常是鼠标键盘）
+d 表示目录
+l 软链接文件
+p 管道文件（本地的程序间沟通产生的文件）
+s 套接字文件（通过网络不通进程进行连接的文件）
+
+后面的九位是定义的文件的权限
+---------
+rwxrwxrwx
+r  读    4
+w  写    2
+x  执行  1
+第一段的三位表示文件的所有者的权限 u
+第二段的三位表示的是文件的所属组的权限 g
+第三段的三位表示的是其他人的权限 o
+
+修改权限的指令：
+chmod  {u|g|o|ug|go|uo|ugo|a} {+|-|=} 
+{r|w|x}  filename
+例：chmod g-r passwd 
+chmod u+w,g=rw,o+rw passwd
+
+[root@centos6 tmp]# chmod 400 passwd 
+表示passwd文件除了使用具备只读权限外，其他人不具备任何权限。
+
+ chmod -R 760 test/
+参数-R表示递归，这样操作会将test目录下的所有文化或者目录都改为指定的权限
+
+注：x权限对文件意味着是否具有执行权限，这里的执行也就是运行脚本或应用。对于目录意味着是否可以cd进去。
+如果A目录中含有root的文件或者目录，即便普通用户对A目录具备所有权限也无法删除root的东西。但是其他普通的是可以正常删除的。
+
+绝对路径和相对路径
+cd ~tom/    cd ~/tom
+~ : 当前用户所在的家目录
+ cd /home/jarry/   这个是绝对路径
+-  表示返回上次所在的目录
+.   表示当前目录
+.. 返回上一级目录
+
+rm  删除文件
+rmdir  删除空目录
+mkdir   创建目录
+
+echo $PATH   
+$是一个变量符号，PATH是一个变量名称，这里表示请求查看当前用户的指令执行路径
+
+c、yum安装
+优点：尽可能解决包依赖，方便
+缺点：存在版本依赖
+
+d、dnf安装
+
+2017/3/17
+cp  -rf  强制递归复制文件（目录）
+cp  -p   复制文件时将文件的属性一同复制
+mv  移动和重命名
+touch  创建文件
+FHS（文件系统层次标准）：可以被共享的，不可以被共享的，可以被修改的，不可以被修改的
+/usr是可以被共享的，不可以被修改
+/boot/ /etc/是不可以被共享的
+var/www是可以被改变的
+var/lock
+var/run不可以被共享的，可以被修改
+FHS定义了三层目录下应该的数据：
+/  /usr   /var 
+
+
+2017/3/19 上午
+umask  文件权限过滤符
+umask的值由4位数构成，最后三位分别表示ugo
+文件                目录
+6    6    6       7   7    7
+rw-  rw-  rw-    rwx  rwx  rwx
+              0022
+rw-  r--  r--    rwx  r-x  r-x
+6     4   4       7   5    5
+              0333
+4    4    4       4   4    4
+
+隐藏属性  chattr  +选项  目标文件或目录
+只能使用unix/linux类的文件系统，不支持vfat文件系统
+a  目录中的内容只能添加不能删除
+A  不能修改文件的访问时间
+i  针对文件只读，不能执行任何属性的修改和文件内容的修改。针对目录，不可以删除和创建内容在目录中。
+S  立即执行同步写操作，不缓存数据的
+u  保证备份进行数据恢复的（未成功）
+
+[root@centos6 test]# ll /usr/bin/passwd   查看passwd命令权限
+在u的位置的执行权限不是x，而是s，这个就是suid
+当一个文件被设置了suid，那么所有用户在执行这个文件时就具备了和这个文件的所有者同等的权限。这个权限通常只是针对文件设置。针对文件
+
+[root@centos6 /]# chmod g+s test/  设置目录为sgid
+目录被设置SGID后，任何人再这个目录中建立的文件，都属于这个目录本身所属组。针对目录
+
+SBIT：在设置了sbit的目录中，只有文件的所有者或者是目录的所有者以及root可以删除
+[root@centos6 /]# chmod o+t test/
+设置test目录为sbit权限
+
+umask的第一位就是过来suid（4），sgid（2）和sbit（1）权限的。
+[root@centos6 /]# chmod 2777 /test/
+这个表示给test目录添加sgid
+
+注：如果在文件或者目录设置了suid等相关权限后出现的是大写的S或者T，表示本身这个目录或者文件没有执行x权限
+
+2017/3/19 下午
+文件查找 find 
+[root@centos6 tmp]# find /home -print 
+通过find查找家目录下的所有文件并打印出来。
+[root@centos6 /]# find / -name shadow 
+查找匹配的文件，-name表示文件名称，-iname表示忽略大小写。
+[root@centos6 tmp]# find . -type d 
+参数-type表示文件类型：
+l  链接文件
+d  目录
+f  普通文件
+c  字符文件
+p  管道文件
+s  套接字文件
+
+-maxdepth  目录的最大深度，表示最多检索多少层目录
+-mindepth  目录的最小深度，表示必须要从多少层开始检索
+
+[root@centos6 tmp]# find /  -maxdepth 2 -type f -name 6.pdf  
+多个参数叠加搜索，要注意检索时的参数顺序
+
+根据时间戳查找：
+访问时间（atime）（amin）
+修改时间（ctime）（cmin）
+变化时间（mtime）（mmin）
+[root@centos6 tmp]# find . -type f -atime +2 
+表示查找当前目录下的2天以前被访问过的普通文件。-2表示2天以内的文件。2表示正好2天。
+[root@centos6 tmp]# find . -type d -amin -5
+[root@centos6 tmp]# find . -type f -newer test1
+根据test1文件的时间戳列出比它更新的普通文件
+[root@centos6 tmp]# find . -size +10 
+查找出当前目录下所有大于10K的文件，如果是大于10M，需要指明+10M
+[root@centos6 tmp]# find . -size +90M -size -110M  指定大小范围检索
+[root@centos6 tmp]# find . -user tom -group root  根据用户名和组查找
+[root@centos6 tmp]# find . -iname \*.mp4 -delete
+查找出所有的mp4后缀的文件并删除
+[root@centos6 tmp]# find . -type f  -perm 777
+查找文件权限为777的普通文件
+[root@centos6 tmp]# find . -type f -perm -111
+查找普通文件中ugo三组中必须都有执行x权限的文件。-表示和。+表示或
+[root@centos6 tmp]# find . -type f -user tom  -exec chown root {} \;
+参数-exec是find工具中最强大的一个匹配选项，可以在检索完成后执行特定动作和指令。{}用来将检索后的内容匹配到命令中去。
+上面的意思整体就是查找属于tom 用户的所有普通文件，然后将所有文件的所有者改为root。
+
+文件系统：ext4（日志式文件系统），xfs，ntfs，fat32，tmpfs，proc
+文件系统是对一个存储设备上的元数据和数据进行组织管理的机制，可以简单理解为是告诉底层和上层如何去读取、存储数据
+
+日志式文件系统是类unix/Linux特有的，它会在启动时系统中生成一个journal。
+
+2017/03/26
+软链接: 快捷方式，不占用块空间，但是占用inode空间，而且它的存在依赖于它的链接文件。
+硬链接：  类unix中特有的，可以用来备份重要文件，并且不占用inode，不占用块空间，但是不能跨分区
+复制：产生一个全新的文件，生成新的inode，占用块
+移动：同一个分区下，不占用块空间，只是重新定义inode。不同分区下，会重新调整inode和块空间。
+
+磁盘分区：MBR和GPT
+fdisk  -l  查看当前的硬盘分区参数
+[root@centos6 ~]# fdisk /dev/sdb
+针对sdb硬盘进行分区操作
+   d   delete a partition
+删除一个分区
+  l   list known partition types
+显示已知的分区类型
+   t   change a partition's system id
+改变分区的系统编号，编号通过l获取
+   n   add a new partition
+添加一个新分区
+   p   print the partition table
+显示分区表
+   q   quit without saving changes
+不保存退出
+   w   write table to disk and exit
+保存并退出
+  
+分区完成后，硬盘需要进行文件系统定义和挂载才能使用。
+[root@centos6 ~]# mkfs.ext4 /dev/sdb5
+格式化磁盘，文件系统定义为ext4
+[root@centos6 ~]# mount /dev/sdb5 dir/
+将硬盘sdb5挂载到dir目录下
+
+[root@centos6 ~]# mount -o remount,ro /dev/sdb5  
+重新挂载sdb5并定义为只读，还可以定义rw，noexec（不能执行）
+
+[root@centos6 dir]# fuser -mv /dev/sdb5
+对于卸载时进程的占用，可以通过上面的指令查看是谁占用了挂载的硬件，然后可以通过kill等指令干掉对方。
+
+[root@centos6 ~]# fsck.ext4 -fc /dev/sdb5
+进程强制自检并显示过程
+
+gpt分区：parted
+[root@centos6 ~]# parted /dev/sdb
+使用parted工具对sdb进行gpt分区
+mklabel  创建分区表，指明gpt
+mkpart   创建分区 
+
+[root@centos6 ~]# gedit /etc/fstab 
+这个文件是用来实现自动挂载
+
+swap  类似于windows中的虚拟内存的概念
+个人计算机 休眠 hibernate swap分区大小必须至少和内存大小一样
+服务器 oracle 等应用对swap有特定要求，不创建无法安装数据库
+
+swap划分除了安装系统过程中定义以外，在系统安装好后也可以后期再生成。有二种方式：
+一种是基于新的磁盘，一种是基于文件。
+[root@centos6 ~]# mkswap /dev/sdb1
+用swap格式来格式化文件系统
+[root@centos6 ~]# swapon  /dev/sdb1
+激活swap分区，如果需要关闭swap分区，使用swapoff 
+最后写入fstab中实现自动挂载
+
+第二种方式通过生成空文件来实现swap挂载
+[root@centos6 ~]#dd if=/dev/zero of=fileswap bs=1M count=100
+[root@centos6 ~]# mkswap fileswap
+[root@centos6 ~]# swapon  fileswap
+最后也可以写入到fstab中
+
+数据恢复
+http://codebay.cn/post/1977.html?1490402903150 
+
+lsof
+系统进程会在后台为所有的文件提供一个文件描述符
+[root@centos6 ~]# lsof | less
+COMMAND     PID      USER   FD      TYPE             DEVICE  SIZE/OFF       NODE NAME
+FD 文件描述符  
+cwd 当前的应用程序在哪个目录下工作
+txt 可以执行的文件，比如二进制代码程序
+mem 内存中调用的文件
+0u  这个是文件打开后返回的一个整数值，u表示可以读写，r表只读，w可以写
+type表示类型，dir（目录） reg（文件）
+clk（字符文件）blk（块设备文件）
+node 表示inode值
+[root@centos6 tmp]#lsof /var/log/messages    查看系统中被进程占用的这个文件的信息
+[root@centos6 tmp]# lsof |grep delete --color
+查找最近被删除过的文件，前提是系统没有重启
+根据文件描述符，找到/proc/进程号/fd/对应的文件描述符进行恢复
+[root@centos6 tmp]#cat 4 > /var/log/messages
+
+使用软件恢复
+debugfs
+r—linux
+foremost：支持的文件系统类型很多，但有些特定格式的文件不支持
+extundelete：支持ext文件系统。不能够实现同一个分区下的数据恢复
+
+2017/3/28  vim
+vim  编辑器之神 1991    vi 1976
+emacs 神的编辑器    1975
+文本文档  notepad++
+
+IDE  集成开发环境
+
+命令模式    esc返回到命令模式
+i  进入插入模式，光标维持不动
+I  进入插入模式，光标会停留在行首
+a  进入插入模式，将光标后移一格
+A  进入插入模式，光标移动到行尾
+o  进入插入模式，向下新建一行开始
+O  进入插入模式，向上新建一行开始
+u  回退，对修改的返回
+ctrl+r 前进
+插入模式
+末行模式 “：”保存、退出、定位、查询、修改
+注：在任何模式下如果希望进行模式间的切换，都必须先返回到命令行模式，所以esc很有用
+
+:q!  在vim中这个表示强制退出
+:wq 保存并退出
+:X  加密
+:x  写入退出
+末行模式下的内容替换
+:s/lp/lg/   在当前行找到lp并替换为lg
+:s/lp/lg/g  最后的g表示全局，这里的全局是指的当前行
+:/XX  表示搜索文档中包含xx的内容。搜索出的内容会高亮显示，按n可以在所有内容中逐个向下查看，N向上查看
+:6s/bin/Linux/g     6s表示修改第六行
+:.,$s/bin/llll/g   .表示当前行，$表示最后一行
+:%s/bin/xxx/    %表示全局替换                         
+:%s/^#//g   ^表示开头，这里的理解是将整个文档开头带#的内容全部删除。（最后2个/没有空格，所以是删除）
+
+命令行模式下的定位：  n（数字） G
+gg  回到第一行
+G   回到最后一行
+复制 yy
+黏贴 p
+10yy  表示复制10行
+剪切  dd  删除
+r（紧跟你希望的字符）  替换一个字符
+x  删除一个字符
+
+M 光标移动到屏幕中央的行的第一个字符
+H 光标移动到当前屏幕第一行的第一个字符
+L 光标移动到屏幕最后一行的第一个字符
+0 数字0直接到光标所在行的第一个字符
+$ 到光标所在行的最后一个字符
+
+块选择 ctrl+v
+分屏 :sp
+ctrl+w 上下箭头，切换（建议ctrl w w）
+
+多文档编辑  vim file1 file2  
+:next  进入下一个文档
+:N   返回上一个文档
+:files  查看当前所有打开的文档
+
+2017/3/30
+[root@centos6 ~]# vim .vimrc
+vim的配置文件
+set nocompatible     关闭兼容模式
+set compatible 就是让vim关闭所有扩展的功能，尽量模拟 vi 的行为。但这样就不应用vim的很多强大功能，所以一般没有什么特殊需要的话（比如执行很老的 vi 脚本），都要在 vim 的配置开始，写上 set nocompatible，关闭兼容模式。由于这个选项是最最基础的选项，会连带很多其它选项发生变动（称作副作用），所以它必需是第一个设定的选项。
+set?fileencodings=gbk,ucs-bom,utf-8,cp936,gb18030,big5,euc-jp,sjis,euc-kr,ucs-2le,latin1 
+设置多编码处理??
+set?encoding=utf-8
+set fileformats=unix,dos,mac 设置文件格式??
+set backup        指定备份，不需要改为nobackup
+set backupdir=~/backup    设置备份文件目录
+set history=50    设置搜索的历史记录
+set?ignorecase?smartcase    搜索时忽略大小写，但在有一个或以上大写字母时仍保持对大小写敏感??
+set ignorecase    搜索时忽略大小写
+set hlsearch    高亮查找内容
+set cursorline　高亮显示当前行
+set cursorcolumn　高亮显示当前列
+set incsearch    使用增量查找，不需要加noincsearch
+set number    设置行号
+set showmatch    显示配对括号
+syntax on     开启语法高亮
+filetype?on    打开文件类型检测功能，根据文件名自动判断文件类型，实际上执行的是$vimRUNTIME/filetype.vim脚本
+set laststatus=2　　　总是显示状态栏
+colorscheme?xoria256? 指定配色方案??
+highlight Comment ctermfg=LightCyan   更改注释颜色为淡青色，前提是开启语法高亮
+set wrap   自动折行，在默认情况下，Vim会自动折行––将超出屏幕范围的文本打断并显示在下一行
+set undolevels=1000   允许撤销的次数
+set?ruler   显示当前位置于右下角
+set?textwidth=100  每行最大 100 字符
+set?tenc=gbk  term 下的编码，可选
+
+
+vundle插件管理器，它本身也是插件，但是通过它可以管理上千个vim的其他插件，通过插件的组合，可以制作属于自己的IDE（集成开发环境）
+[root@centos6 ~]# mkdir -p .vim/bundle
+所有的插件下载后都会安装在这个目录下，包括我们需要下载的vundle
+
+
+
+git  版本控制
+a1.0  
+a1.1 
+a1.2
+a1.3
+版本     用户      日期    改变
+1.0      zrq       2.21    第三行xx
+2.0      zrq       2.23    删除第三行
+3.0      lmx       2.28    改变了题目
+
+git  最好的分布式版本控制系统
+往Git版本库里添加文件的时候，是分两步执行的：
+第一步是用git add把文件添加进去，实际上就是把文件修改添加到暂存区；
+第二步是用git commit提交更改，实际上就是把暂存区的所有内容提交到当前分支。一旦提交后，如果你又没有对工作区做任何修改，那么工作区就是“干净”的；
+因为我们创建Git版本库时，Git自动为我们创建了唯一一个master分支，所以，git commit就是往master分支上提交更改。
+可以简单理解为，需要提交的文件修改通通放到暂存区，然后，一次性提交暂存区的所有修改。如果还有不理解的可以先百度或谷歌，还不理解再问我。
+
+[root@centos6 ~]# mkdir mygit
+创建一个目录，mygit，这个目录作为我们的仓库
+[root@centos6 mygit]# git init 
+在我们的仓库目录中初始化，生成.git目录，这个目录用来追踪版本变化
+[root@centos6 mygit]# cp /etc/passwd .
+[root@centos6 mygit]# git add passwd
+[root@centos6 mygit]# git commit -m "1936.1.0"   将仓库中的文件提交，参数m为注释信息
+[root@centos7 mygit]# git diff passwd    对比文件的前后区别
+[root@centos7 mygit]# git add  passwd  添加到仓库中
+[root@centos7 mygit]# git status    显示当前被修改过的文件，根据有没有状态显示我们可以决定是否需要提交
+[root@centos7 mygit]# git commit -m "this is 1.1"    提交文件到仓库
+[root@centos7 mygit]# git status   再次查看当前是否存在需要提交的修改文件，显示clean
+[root@centos7 mygit]# git log   显示从最近到最远的提交日志。
+注：log里显示的commit id是sha1计算出来的，可以防止在多人协同时版本号的冲突。比如都用数字(1,2,3,4)做版本号。
+[root@centos7 mygit]# git reset --hard d5047b134117e0ec38ed1468c40bb4e5b6071fe1   根据git log显示的commit版本号回退到最初
+[root@centos7 mygit]# git log   再次查看版本，因为已经回退到最初，所以提交的日志也只有最初的
+[root@centos7 mygit]# git reflog     查看reflog，这里记录每次命令操作，可以通过里面的commit id号前进到各个版本
+oot@centos7 mygit]# rm passwd    删除文件
+[root@centos7 mygit]# git checkout -- passwd   撤掉所有对工作区的修改，对于修改后没有提交的情况下可以撤销所有修改，对于误删的文件也可以恢复
+[root@centos7 mygit]# git rm passwd   删除版本库中的文件
+[root@centos7 mygit]# git commit -m "remove"  提交，文件从版本库中被删除
+[root@centos7 mygit]# git reflog    查看历史记录
+[root@centos7 mygit]# git reset --hard d5047b1   仍然可以通过git恢复
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
+   
+   
+   
+   
+   
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
