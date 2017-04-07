@@ -739,6 +739,61 @@ oot@centos7 mygit]# rm passwd    删除文件
 [root@centos7 mygit]# git reflog    查看历史记录
 [root@centos7 mygit]# git reset --hard d5047b1   仍然可以通过git恢复
 
+2017/4/6
+1、增加远程的仓库
+$ git remote add origin https://github.com/Tailless-Monkey/Linux-7.git
+2、查看是否添加成功
+$ git remote -v
+3、将远程仓库克隆或者下拉
+将远程仓库克隆到本地，克隆时要注意路径
+$ git clone https://github.com/Tailless-Monkey/Linux-7.git
+在远程仓库上做了修改，希望保证本地和远程版本一致，使用pull下拉
+$git pull origin  master
+4、推送本地的修改到远程仓库
+
+系统用户
+/etc/passwd 
+系统使用uid来表示用户名
+使用git表示组名
+uid=0  root 
+uid从1到499都是系统用户，PAM模块会过滤500以内的uid用户
+uid从500-65535，都是普通用户
+root:x:0:0:root:/root:/bin/bash
+用户名：密码：uid：gid：注释：家目录：shell环境
+
+/etc/shadow   密码文件
+用户名：密码（sha-256）：unix纪元时（1970-1-1）：最少使用天数：最多使用天数：密码到期前的警告天数：不活跃时间：失效时间
+
+添加tom用户到root组
+[root@centos6 ~]# gpasswd -a tom root
+[root@centos6 ~]# id tom  查看系统中的用户
+创建一个用户marry并加他加入到root组
+[root@centos6 ~]# useradd -G root marry  
+
+[root@centos6 ~]# newgrp  marry  将当前用户临时加入marry组
+
+[root@centos6 桌面]# vim /etc/default/useradd 
+这个文件是修改用户创建时的默认参数
+
+[root@centos6 桌面]# useradd  -c "i am jack"  -s /sbin/nologin/  -d /home/jack    -g tom   -G  tom  -u 1000 jack 
+创建一个用户jack
+
+[root@centos6 桌面]# passwd jack  用户jack设置密码
+[root@centos6 ~]# passwd -d jack  清空密码
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
