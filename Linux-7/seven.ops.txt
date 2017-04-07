@@ -781,8 +781,7 @@ root:x:0:0:root:/root:/bin/bash
 [root@centos6 桌面]# passwd jack  用户jack设置密码
 [root@centos6 ~]# passwd -d jack  清空密码
 
-
-
+2017/4/9
 
 
 
