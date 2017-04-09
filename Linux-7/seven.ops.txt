@@ -782,9 +782,9 @@ root:x:0:0:root:/root:/bin/bash
 [root@centos6 ~]# passwd -d jack  清空密码
 
 2017/4/9
-github
+一、github
 
-用户账户
+二、用户账户
 finger tom  查看用户详细信息
 chfn  tom  修改用户的finger信息
 [root@centos6 ~]# chsh -s /sbin/nologin jack
@@ -810,7 +810,7 @@ newusers < *.txt
 chpasswd < *.txt
 这样操作后用户不存在家环境，从/etc/skel中拷贝所有环境文件到每个用户的家目录
 
-3、密码规则
+三、密码规则
 root  
 禁止远程登录   ssh禁止
 设置足够强的密码，并且设置定期更改的时限
@@ -843,30 +843,67 @@ remember=3表示修改密码不能重复3次以内
 [root@centos7 ~]# chmod 700 /usr/bin/su
 禁止其他用户使用su
 
+四、FACL
+bob（读）  tom（写）  jarry（读写） jack（读x）
+xx 
+[root@centos6 tmp]# getfacl  xx  查看文件xx的acl规则
+[root@centos6 tmp]#  setfacl -m u:bob:rwx xx  针对文件xx为用户bob设置acl，参数m表示修改
+注：[root@centos6 tmp]# getfacl xx  查看权限
+user:jarry:rwx			#effective:---
+如果出现上述内容，那么facl规则没有生效，重新执行setfacl
+[root@centos6 tmp]# setfacl -x u:jarry xx
+删除用户的facl，参数x就是remove
+[root@centos6 tmp]# setfacl -m u:bob:rwx rhce/
+针对目录实现facl
+[root@centos6 tmp]# setfacl -m d:u:bob:rwx rhce/
+不论是谁在rhce目录下创建的文件或者目录，bob都具有默认的权限
+[root@centos6 tmp]# setfacl  -x d:u:bob xx
+删除的acl，但是默认的规则会保留
+[root@centos6 tmp]# setfacl -k rhce/
+删除默认的规则
+
+五、sudo
+visudo或者vim /etc/sudoers  
+ 99 bob     ALL=(ALL)       ALL
+    用户    主机名         命令
+ 99 bob     ALL=(root)      NOPASSWD: /bin/mount,/bin/umount
+表示不输入密码
+
+六、PAM
+插入式验证模块 SUN
+提供了一个API，用于系统的安全认证方面
+pam模块所在位置 /lib64/security
+/usr/share/doc/pam-1.1.1/txts  这个目录下存放了所有模块的说明文档
+pam_access.so   比如这个模块就是控制用户登录的
+[root@centos6 pam.d]# vim /etc/pam.d/sshd
+查看这个pam插件的具体格式
+       模块类型    	控制标记	调用的模块
+模块类型：	   
+认证模块auth   认证用户管理的
+账户管理account   认证账户执行与访问的控制权限
+密码管理password   设置密码、密码强度、更新密码
+会话管理sessions 管理连接和断开
+控制标记：
+required  当带有这个标记的模块只有全部通过验证才表示鉴定完毕。如果有不符合的，模块不会返回信息
+include  同时调用其他模块或脚本
+sufficient 模块一旦验证成功，PAM立即返回成功标识，不再继续。如果失败，继续
+optional 不论成功失败，都继续
+requisite 失败即终止，其他跟required一样
+
+/etc/pam.d目录下存放了模块的所有环境文件
+		
+七、互动
+w 查看当前的用户
+who 查看当前用户，信息更简单直接
+mesq n  关闭通知
+mesq y  开启通知
+wall “XXXX”  发送广播
+write username  tty2  单向联系
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-密码规则
-PAM
 
 
 
