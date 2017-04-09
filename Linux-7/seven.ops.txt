@@ -783,7 +783,88 @@ root:x:0:0:root:/root:/bin/bash
 
 2017/4/9
 github
+
 用户账户
+finger tom  查看用户详细信息
+chfn  tom  修改用户的finger信息
+[root@centos6 ~]# chsh -s /sbin/nologin jack
+修改用户登录的shell环境
+添加组和删除组（不依赖用户）
+[root@centos6 ~]# groupadd xx
+[root@centos6 ~]# groupdel xx
+[root@centos6 ~]# gpasswd -d jack tom 从tom组中删除jack
+[root@centos6 ~]# gpasswd -a jack tom  添加jack到tom组
+
+两种批量创建用户的方法：
+1、for 循环添加
+[root@centos6 ~]# for i in `seq 1 10`
+> do
+> useradd user$i
+> echo "redhat" | passwd --stdin user$i
+> done
+
+2、通过文件来添加  /etc/passwd   /etc/shadow
+pwconv    
+pwunconv 取消shadow加密
+newusers < *.txt 
+chpasswd < *.txt
+这样操作后用户不存在家环境，从/etc/skel中拷贝所有环境文件到每个用户的家目录
+
+3、密码规则
+root  
+禁止远程登录   ssh禁止
+设置足够强的密码，并且设置定期更改的时限
+[root@centos6 ~]# vim /etc/login.defs 
+这个文件可以设置密码的规则
+[root@centos6 ~]# vim /etc/pam.d/system-auth
+这个文件也可以设置用户登录的密码规则
+ 16 password    sufficient    pam_unix.so sha512 shadow nullok try_firs
+    t_pass use_authtok remember=3
+remember=3表示修改密码不能重复3次以内
+[root@centos7 ~]# vim /etc/security/pwquality.conf 
+设置密码的详细规则，针对所有用户
+ 51 minlen = 8   最小长度
+ 52 minclass = 1   最小类别，表示密码中最小的字符类别是几个，比如大写字母算一个，小写字母算一个，特殊符号算一个
+ 53 maxrepeat = 2  密码中允许出现的连续相同的字符最多是2个 
+ 54 maxclassrepeat = 4   密码中不允许出现连续的字符类别
+ 55 lcredit = 0   在新密码设置时最少需要包含几个小写字母
+ 56 ucredit = 0  在新密码设置时最少需要包含几个大写字母
+ 57 dcredit = 0 
+ 在新密码设置时最少需要包含几个数字
+ 58 ocredit = 0
+在新密码设置时最少需要包含几个特殊字符
+ 59 maxsequence = 3
+在新密码中不允许连续出现同类的字符3个以上
+ 60 difok = 8
+在新密码设置中不允许和上一个密码的相同字符达到8个
+ 61 gecoscheck = 3
+在新密码中密码的相同字符不能超过gecos信息的3个
+
+[root@centos7 ~]# chmod 700 /usr/bin/su
+禁止其他用户使用su
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 密码规则
 PAM
 
