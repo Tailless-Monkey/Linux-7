@@ -970,6 +970,110 @@ r  修改nice值来决定某一个进程的优先级
 [root@centos6 ~]# nice -n 19 cat /dev/zero > /dev/null 
 在进程启动前就定义优先级
 
+系统资源的查看
+[root@centos6 ~]# netstat -ntlup |grep :22
+[root@centos6 ~]# ss -ntlup |grep :22
+[root@centos6 ~]# free  查看内存
+[root@centos6 ~]# uptime  查看登录的用户以及开机的时间等信息
+[root@centos6 ~]# vmstat 1 3  查看系统的信息报告了，1秒执行一次，一共执行3次
+si 磁盘每秒钟读入虚拟内存的大小，这个值如果大于0，说明物理内存已经耗尽
+so 每秒钟写入虚拟内存的大小
+bi 块设备每秒接收的块数量
+bo 每秒发送的块数量
+in 每秒cpu的中断次数
+cs 每秒钟上下文的切换次数
+
+sar 非常重要的一个工具，可以通过它判断系统的整体性能，可以通过sysstat的安装获取这个工具
+[root@centos6 ~]# sar -P ALL 1 2  查看所有逻辑cpu的状态报告，1秒钟一次，一共采样2次
+[root@centos6 ~]# sar -r 1 2  对内存采样
+[root@centos6 ~]# sar -b 1 2  对磁盘io采样
+ tps      每秒向磁盘发送的请求
+rtps     每秒向磁盘的读请求 
+wtps      写请求
+bread/s   每秒读取的数据量
+bwrtn/s   每秒写入的数据量
+[root@centos6 ~]# sar -d -p  1 2  显示具体块设备的状态，-p表示显示标准的名称，-d表示dev
+[root@centos6 ~]# sar -n DEV 1 3  查看网卡的使用状态
+
+
+2017/4/13 selinux 
+selinux  美国国家安全局 fedora 联合开发
+标签系统，为所有的文件和进程打上特定标签，只有符合标签的用户才能执行相应的进程，当执行相应进程时，只能触碰这些进程指定的文件或者目录
+DAC  自主访问控制，通过文件或者目录的属性来实现读取
+MAC 强制访问控制，核心思想就是任何进行企图在selinux中执行时，必须在安全配置策略中具有特定权限
+
+MAC并不会取代DAC，它们可以并行运作，通常执行dac权限，系统再查看是否有MAC限制
+
+selinux 的最终目标是针对一个进程是否具有打开某些特定文档的权限
+
+selinux工作模式：
+主体：进程（程序）
+客体（目标）：文件、端口、设备
+策略：targeted策略（红帽中标准的策略）只提供针对网络服务的限制、mls最严格的策略规则，不论本地还是网络都要进行限制、minimum是targeted的升级版本，针对有限的进程进行限制
+安全上下文：security context定义了主体和客体的上下文必须一致的情况下才能安全访问
+移动文件时安全上下文不变
+复制文件时会生成新的安全上下文
+创建文件时会根据系统的预置生成上下文
+安装软件时上下文也会被系统定义
+系统登录时pam模块就预置了pam_selinux.so来定义用户的上下文
+
+上下文解读：
+system_u:object_r:admin_home_t:s0
+身份验证:角色:类型:mls使用的级别
+身份验证：这块内容在targeted策略中并不是十分重要
+          system_u管理员预设身份
+		  unconfined_u  不做定义
+		  user_u  普通用户
+		  
+角色：
+		文件或者目录 object_r
+         进程或者程序system_r
+类型:
+     程序  domain
+	 文件资源  type
+
+	
+[hf@centos7 tmp]$ ls -Z  查看上下文
+[root@centos7 tmp]$yum install setools\* -y            
+[root@centos7 tmp]$yum install policyor utils-python-2.5-11.el7_3.x86_64 
+安装上下文的查看工具
+
+[root@centos7 /]# semanage fcontext -l | grep /etc/passwd  查看系统中某一个文件或者目录或者进程的上下文
+
+[root@centos7 /]# ll /etc/sysconfig/selinux 
+selinux的主配置文件
+selinux的模式有三种（基于红帽系统）
+enforcing  强制模式，对违规进行限制（rhel7默认）
+permissive   宽容模式,只显示警告信息，不阻止
+disabled   禁用selinux。必须重启系统才能生效
+
+[root@centos7 /]# sestatus 查看当前selinux的状态信息
+[root@centos7 /]# getenforce  查看当前的selinux模式
+[root@centos7 /]# setenforce  设置selinux模式
+这些设置都是临时有效，如果要永久生效，修改配置文件
+
+实例：
+安装apache服务器，默认安装好后，首页路径在/var/www/html目录下，假如我们修改了默认的路径，那么selinux会阻止我们访问这个路径下的首页
+[root@centos6 tmp]# chcon -R -t httpd_sys_content_t /tmp/xx/
+[root@centos6 tmp]# restorecon -R /tmp/xx/ 还原上下文
+[root@centos6 tmp]# chcon -R --reference=/tmp /tmp/xx/   引用tmp目录的上下文给xx
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
