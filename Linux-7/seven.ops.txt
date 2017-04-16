@@ -1059,6 +1059,377 @@ disabled   禁用selinux。必须重启系统才能生效
 [root@centos6 tmp]# chcon -R --reference=/tmp /tmp/xx/   引用tmp目录的上下文给xx
 
 
+2017/04/16
+修改sshd 的默认端口，selinux在enforcing模式下，会发现标签的变化，然后阻止用户的这种行为。
+[root@centos7 ~]# cat /var/log/audit/audit.log |grep AVC | tail -5
+查看审计日志中关于AVC的信息。AVC是selinux机制中的一个策略服务器
+[root@centos7 ~]#systemctl status sshd  查看sshd服务当前的状态，如果端口修改，selinux开启的情况下，状态会报错
+[root@centos7 ~]# semanage port -l 查看系统中所有的进程对应的端口，以及对应的端口的上下文
+[root@centos7 ~]# semanage port -l | grep 22
+查看端口22的标签
+[root@centos7 ~]# semanage port -a -t ssh_port_t -p tcp 2222
+将端口2222的标签修改为ssh的标签
+
+selinux的布尔值
+[root@centos7 ~]# getsebool -a
+查看系统中默认的所有的布尔值
+[root@centos7 ~]# sestatus -b 
+使用sestatus工具也可以查看布尔值状态
+[root@centos7 ~]# setsebool -P ftpd_anon_write on  永久设置一个布尔值开关，不加p参数表示临时生效
+
+[root@centos6 booleans]# yum install policycoreutils\* 
+selinux的图形化管理工具
+
+[root@centos6 booleans]# yum install setroubleshoot 
+selinux的排故工具
+
+BASH
+unix shell
+shell 壳  shell是内核（linux）的壳，负责将用户的指令传递给内核，内核在控制硬件。
+shell是一个命令解释器，是c语言
+第一个shell是unix里的sh
+几乎所有的linux发行版中默认的shell都是bash
+shell有很多种，每种都带有自己的特定的功能和优点
+sh：AT&T 贝尔实验室 快速，简洁，运维使用，一般现在不使用，可以用于单用户模式
+bash：是bsh的升级版，bash整合了csh和ksh的功能，特点是功能强大，有很多特性，比如自动补全，拼写更正，颜色分类等等，是最常使用的版本
+tcsh ：不是标准的unix shell，提供了很多特殊的功能，但不常用
+csh：伯克利大学开发的，特性众多，但据说是执行效率不高
+ksh：AT&T开发，功能已经被bash整合
+zsh：终极shell。
+powershell：windows下的shell
+linux bash 通用，功能较均衡，执行效率快
+mac  zsh 
+windows powershell 
+
+[root@centos6 ~]# echo "today is" ; date ; cal
+多个指令可以使用；隔开，第一个执行完会执行第二个，以此类推
+
+[root@centos6 ~]# echo "scale=10；33/23" | bc 
+用scale控制计算精度，这里表示定义小数点后的10位
+[root@centos6 ~]# echo "obase=10；101010" | bc
+用obase定义转换的进制，这里是将101010转为10进制
+[root@centos6 ~]# echo "10^10" | bc  平方
+[root@centos6 ~]# echo "sqrt（100）" | bc 开根 
+[root@centos6 ~]# echo "1+1" | bc 
+
+单引号'' 单引号中被包裹的不论是什么都原样显示
+双引号"" 双引号中被包裹的内容除了会被原样显示之外，还能识别一些特殊的函数符号，比如$、\、``
+反引号`` 
+[root@centos6 ~]# echo Today is `date` 在linux中反引号起到命令替换的作用。将字符串中的某一个被包裹的变为指令（指令存在）
+
+变量
+~   家目录，当前用户的家
+在bash中，变量使用时基本不需要声明类型，每个变量的值都是字符串
+echo $PATH
+echo $PS1
+格式：变量名=值
+注：变量不能是数字开头，等号两边不能有空格
+本地变量  只在当前的shell环境中定义，不会影响其他shell或者子shell   xx=24 
+查看变量一定是用$标记，变量名区分大小写，系统默认的变量一般都是大写
+[root@centos6 ~]# unset xx  取消变量xx
+环境变量   sshd   
+[root@centos6 24]# pgrep sshd  获取某一个进程的pid
+\0  分割符
+\n 换行分割
+[root@centos6 ~]# export   查看当前的环境变量
+[root@centos6 ~]# env  查看当前的环境变量 
+[root@centos6 ~]# export xx=24  设置xx为环境变量
+[root@centos6 ~]# declare -x zz=10  定义环境变量
+[root@centos6 ~]# declare -i bb
+定义变量bb为整数，如果取消+i
+[root@centos6 ~]# declare -r aa  定义只读变量
+
+位置变量：
+$0   执行脚本或者指令的名称
+$1   第一个参数
+$2   第二个参数
+类推
+$@   所有的参数都显示
+$#  　参数的总数
+[root@centos6 tmp]# echo ${13}  查看变量名时用{}内容是一个整体
+
+shell中的read（交互）
+[root@centos7 ~]# read xx
+read是表示从系统中读取，将获取到的信息赋值给xx
+[root@centos7 ~]# read   不写变量名，赋值给默认的变量REPLY
+[root@centos7 ~]# read -s password  不进行回显输入
+[root@centos7 ~]# read -t 2 p
+设定timeout超时时间
+[root@centos7 ~]# read -p "Enter input:" -d "￥" xx  参数-p表示显示信息，-d定义中断符
+
+数组
+普通数组（下标数组）
+[root@centos6 tmp]# xx=(aa bb cc dd ee)
+[root@centos6 tmp]# echo $xx
+[root@centos6 tmp]# echo ${xx[0]}
+[root@centos6 tmp]# echo ${xx[@]} 查看所有数组
+[root@centos6 tmp]# echo ${！xx[@]} 查看所有数组的下标
+[root@centos6 tmp]# echo ${#xx[@]} 查看所有数组的数量
+
+关联数组：通过自定义的字符串来建立索引
+[root@centos6 tmp]# declare -A xx
+首先定义一个关联数组的类型
+
+变量内容的删除、替换
+[root@centos6 tmp]# r=${path#*/bin:}
+一个#表示从前往后执行最短匹配
+二个#表示执行最长匹配
+%表示从后往前最短匹配
+%%表示从后往前最长匹配
+
+[root@centos6 ~]# aa=${xx-"error"}
+如果xx这个变量不存在，aa的变量值就是error，如果存在，就是xx的值
+注：空值和不存在是有区别的
+[root@centos6 ~]# aa=${xx="error"}
+如果存在就赋值给aa
+[root@centos6 ~]# aa=${xx?"error"}
+如果不存在，将问号后面的内容赋予变量，一般作为警告表示。
+
+[root@centos6 tmp]# set -u  开启变量提示功能，会判断变量是否存在
+[root@centos6 tmp]# set +u  取消提醒
+[root@centos6 tmp]# set -x   开启回响模式
+[root@centos6 tmp]# set +x   关闭回响模式
+
+[root@centos7 tmp]# vim /etc/issue
+设置登录前的信息
+\d 显示当前时间
+\n  显示当前网络信息
+\v   显示操作系统版本信息
+
+ .bash_profile   用户登录时执行，设置用户的环境变量，主要配置还是来自.bashrc
+ .bashrc  设置用户的bash环境，每打开一个shell都会读取
+ /etc/profile
+ 
+ 
+通配符：
+[]  代表一个字符
+[a-z]  26个字母中匹配一个
+[a\-z]  匹配a、 - 、 z
+[0-9]  匹配数字0-9中的一个
+[!0-9]  除了数字
+?  匹配一个任意字符
+*  匹配任意字符，任意长度
+[root@centos7 tmp]# ls [0-9][!0-9]e?[!a-z]*.mp3
+
+重定向
+stdin  0
+stdout  1  
+stderr   2
+
+输出重定向  > 
+[root@centos7 tmp]# date > xx
+先检查右边是否有文件存在，如果没有，创建，如果有，清空内容，将左边的结果输出到右边的文件中，如果想追加，使用>>
+不论是>或者>>，都只会重定向正确的内容，如果要定义错的输出，可以使用2>或者2>>
+假设希望不论正确还是错误都进行输出，使用&>
+[root@centos7 tmp]# ca1 >>  xx 2>&1
+将错误的结果当成正确的进行重定向
+[root@centos7 tmp]# cal >>  xx 1>&2
+将正确的结果当成错误的重定向
+
+输入重定向
+[root@centos7 tmp]# wc -l < /etc/passwd
+将输入重定向到passwd文件，统计行数
+[root@centos6 tmp]# mail -s "passwd" root < xx
+将xx文档的内容作为邮件内容发送给root
+
+here文档：heredoc
+[root@centos6 tmp]# cat > server.repo << EOF 
+>  [base]
+>  name=base
+>  baseurl=file:///mnt/
+>  enabled=1
+>  gpgcheck=0
+>  EOF
+
+和或
+command1 || command2  一个为真，整体为真
+command1 && command2 两者都为真，整体为真
+
+[root@centos6 tmp]# grep tom /etc/passwd --color  过滤我们想要的内容
+[root@centos6 tmp]# grep -inv root /etc/passwd --color  参数i表示忽略大小写，n表示显示行号，v表示反向过滤
+
+管道：将前面命令执行的结果作为后面命令执行的依据
+cut 剪切  参数-d 定义一个分隔符 ，参数-f定义分隔的是第几段
+[root@centos6 tmp]# ifconfig eth0 | grep "inet addr" | cut -d ":" -f2 |cut -d " " -f 1
+
+[root@centos6 tmp]# last | cut -d" " -f 1 | sort   | uniq -c   查看最近一次登录的用户，uniq表示对最近的重名用户统计
+
+[root@centos6 tmp]# paste aa bb > xx
+文档内容的合并
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
