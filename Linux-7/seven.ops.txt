@@ -1257,6 +1257,111 @@ cut 剪切  参数-d 定义一个分隔符 ，参数-f定义分隔的是第几段
 [root@centos6 tmp]# paste aa bb > xx
 文档内容的合并
 
+2017/04/18   正则表达式
+正则表达式是用来模糊匹配文本的规则的处理工具
+^tom      匹配开头是tom的内容
+tom$      匹配尾部是tom的内容
+.         匹配任意一个字符  
+[]        to[am]  toa和tom
+[^]       9[^78],不能匹配97和98
+[-]       8[0-6],可以匹配80-86，但是87不行
+?         匹配前面的项目0或者1次 
++         匹配前面的项目0或者多次 
+*         匹配前面的项目多次
+()        ma(irt)?x  
+{n}       匹配的次数[0-9]{3}  [0-9][0-9][0-9]
+{n,m}     至少匹配的次数 [0-9]{2,4}
+|         aaa{1st|2nd}  匹配aaa1st和aaa2nd 
+
+[root@centos6 tmp]# grep tom xx.txt  --color
+[root@centos6 tmp]# grep tom$ xx.txt  --color
+[root@centos6 tmp]#grep tom.. xx.txt  --color
+匹配tom后面包含2个字符的行，不可以匹配换行符 
+[root@centos6 tmp]# grep 'tom.*'  xx.txt  --color
+匹配tom后面有任意字符的内容，加引号防止解析错误
+
+* + 贪婪型元字符，过滤时作最长匹配
+[root@centos6 tmp]# egrep 'btom+' xx.txt --color
+？  懒惰匹配
+[root@centos6 tmp]# egrep 'btom?' xx.txt --color
+
+[root@centos6 tmp]# egrep '[Tt]om' xx.txt  --color   匹配Tom或者tom
+
+[root@centos6 tmp]# egrep '^[^Tt]..' xx.txt --color  排除开头T或者t的行
+
+如果我们需要匹配的是一个单词的开头，可以使用\<,
+单词的结尾用\>
+[root@centos6 tmp]# egrep '\<tom' xx.txt  
+[root@centos6 tmp]# egrep 'tom\>' xx.txt  --color
+
+[root@centos6 tmp]# egrep '\btom\b'  xx.txt  --color
+精确定位只包含tom单词的行，tom的前后均没有其他字符
+
+正则表达式中我们还可以做标签，先定义一个符合规则的标签，然后我们可以在后面引用这个标签的内容。做标签使用\(\)
+
+如果希望对出现的匹配的字符做限制，可以用\{n\}
+[root@centos6 tmp]# grep 'tom.\{5\}' xx.txt  --color
+
+grep -E和grep -P中可以用\d  等同于 [0-9]
+
+邮箱
+xxx@xx.XX
+
+[root@centos6 tmp]# grep -E '[a-z0-9]+@[a-z0-9]+\.[a-z]+' /var/log/maillog  --color
+邮箱的匹配
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
