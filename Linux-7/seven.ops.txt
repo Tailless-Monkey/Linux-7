@@ -1352,7 +1352,116 @@ PHPer都知道，?！是取反的意思；?
 花括号后跟个？，贪婪变成不贪婪；?
 还有很多装不下，等着以后来增加。?
 
+2017/04/20  sed和awk
+sed 流编辑器   vim 属于屏幕编辑器
+sed 优点:一边编辑一边调用，节省内存
+sed在编辑时，首先把文档中的一行读入内存，这行内容我们是可以编辑的，这个内存的行叫模式空间。编辑完成后，这行会输出到屏幕，同时清空模式空间的内容，然后读入下一行，重复
+这种修改默认模式下是不会修改源文件内容的
 
+sed ‘range command’ filename
+[root@centos6 tmp]# sed '1d' passwd  |more 
+删除文档passwd中的第一行内容。d是指令，表示删除
+[root@centos6 tmp]# sed 'd' xx.txt   删除所有内容
+[root@centos6 tmp]# sed 's/tom/TOM/g' xx.txt 
+使用s指令表示在文档中搜索并替代
+[root@centos6 tmp]# sed 's/tom/xxxx/2' xx.txt 
+针对tom内容进行标记，替换模式空间中的第二个tom内容，替换为xxxx
+[root@centos6 tmp]# sed '1s/ /--/2' bb  将文档中的第二个空格修改为--。
+[root@centos6 tmp]# sed 's/linux/-&-/1' bb  &符号表示引用前面的关键词，这里会将所有行中第一个linux变为-linux-
+[root@centos6 tmp]# sed '{s/linux/Linux/;s/Linux/rhel7/g}' bb
+如果对模式空间中的内容进行对次指令的调用，要用{;}格式
+[root@centos6 tmp]# sed 'y/id/12/' bb  针对单个字符的修改，不需要添加g，将所有的i变为1，所有的d变为2
+[root@centos6 tmp]# sed '/USERCTL/a\IPADDR\=192.168.1.1' ifcfg-eth0   a表示追加，在关键词的后面添加新的内容。这里是在userctl行后添加新的内容。a是往下添加，i是往上添加
+[root@centos6 tmp]# sed '/ONBOOT/c\ONBOOT=no' ifcfg-eth0 
+直接使用c来修改某一行内容
+[root@centos6 tmp]# sed -i '/BOOT/a\ONBOOT=yes' ifcfg-eth0 
+使用参数-i表示直接在源文件中进行修改
+[root@centos6 tmp]# sed '/^BOOT/{=}' ifcfg-eth0 
+定义关键词属于哪一行，{=} 指定行号
+[root@centos6 tmp]# sed '/^BOOT/{n;s/yes/no/}' ifcfg-eth0 
+n表示读取下一行，首先找出^BOOT内容行，然后读取下一行修改
+
+注：N表示多行模式空间，会读取模式空间的行后继续读取，并且不删除当前空间的行，如果使用N，^不再表示行的开头，$不再表示结尾，它们分别表示模式空间的开头和结束
+
+sed除了模式空间以外，还有一个保持空间的概念，其实就是缓存。使用模式空间时，创建一个副本，如果对模式空间操作，保持空间中的内容可以和模式空间互换
+
+awk  主要用来对文档进行排版，使用非常灵活，是shell脚本的又一个利器。
+cut -d： -f  4 /etc/passwd
+$0(当前行)  $1 $2 
+语法： awk ‘{range，command；command2}’  filename
+
+[root@centos6 tmp]# awk -F: '/^jarry/{ print $3 }' passwd 
+501
+[root@centos6 tmp]# awk -F: '$1~/jarry/{ print $3 }' passwd 
+
+[root@centos6 tmp]# awk 'BEGIN{FS=":"}$1~/jarry/{ print $1,$7}' passwd  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 
 
 
