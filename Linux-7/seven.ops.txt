@@ -1396,10 +1396,74 @@ $0(当前行)  $1 $2
 
 [root@centos6 tmp]# awk 'BEGIN{FS=":"}$1~/jarry/{ print $1,$7}' passwd  
 
+2017/4/23  shell脚本
+./xx.sh   打开一个子shell执行脚本
+bash xx.sh    打开一个子shell执行脚本
+source xx.sh    在当前的shell中执行
 
+数值的比较
+中文              单词             字符
+等于              -eq               ==
+大于              -gt                >
+大于等于          -ge               >=
+小于              -lt                <
+小于等于          -le               <=
+不等于            ！-eq             !==
+判断1：test
+[root@centos7 tmp]# aa=5
+[root@centos7 tmp]# bb=15
+[root@centos7 tmp]# test ${aa} -lt ${bb}
+[root@centos7 tmp]# echo $?
+判断2：[ ]
+[ -f ]  判断文件是否存在
+[ -d ]  判断目录是否存在
+[ -r|w|x ] 判断读写执行权限
+[ -z ] 判断字符是否存在
 
+条件判断
+1、简单条件判断
+if  ； then
+fi
+2、一个条件判断，分成功和失败分别执行
+if  ； then
+else
+fi
+3、多条件判断
+if  ； then 
+elif  ；then
+else 
+4、case....esac
+case  变量  in
+      值1）
+	  命令；；
+	  值2）
+	  命令；；
+esac
 
+函数 function
+alias rm=“/tmp/sh”
 
+循环  while
+while  判断（满足）
+ do
+    XXX
+ done 
+实例：  
+  1 #!/bin/bash
+  2 nu=0
+  3 while [ ${nu} -lt 10 ] 
+  4 do
+  5         let nu++
+  6         echo ${nu}
+  7 done
+
+until不定循环（不满足条件循环）
+
+练习：
+写一个脚本统计目录中的文件数量
+写一个批量创建用户的脚本
+写一个统计系统中普通用户数量的脚本
+写一个脚本，判断系统中有哪些端口被开放
 
 
 
