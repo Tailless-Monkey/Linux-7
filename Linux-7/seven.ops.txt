@@ -1604,6 +1604,74 @@ RAID10£ºÏÈ½øĞĞraid1£¬½«raid1ºóµÄ´ÅÅÌÕóÁĞºóÔÙ½øĞĞraid0¡£ÓÅµã£ºÈßÓàĞÔÄÜºÃ£¬Ğ´ĞÔÄÜ¸
 [root@centos6 tmp]# mdadm -A /dev/md0  /dev/sd{b,c,d,e}
 ÖØĞÂ»Ö¸´ÕóÁĞ
 
+2017/05/04  LVMÂß¼­¾í
+Ö»ÊôÓÚÀàunixÏµÍ³
+
+pv  ÎïÀí¾í
+vg  ¾í×é
+PE  ¾í×éµÄ´óĞ¡ÊÇÓÉPE×é³ÉµÄ£¬PEÒ²ÊÇvgµÄ×îĞ¡µ¥Î»£¬Ä¬ÈÏ´óĞ¡ÊÇ4M
+lv  Âß¼­¾í
+
+[root@centos6 ~]# pvscan   ²é¿´µ±Ç°ÊÇ·ñÓĞÎïÀí¾í´æÔÚ
+[root@centos6 ~]# pvcreate /dev/md0p{1,2,3,4}  ´´½¨pv£¬ÕâÀïÊ¹ÓÃÕóÁĞÖĞµÄ4¸ö·ÖÇøÀ´´´½¨£¨¿ÉÒÔÀí½âÎªÕæÊµ»·¾³ÖĞÊ¹ÓÃÁË4¿éÓ²ÅÌ£©
+[root@centos6 ~]# vgscan   ²é¿´µ±Ç°ÊÇ·ñ´æÔÚ¾í×é
+[root@centos6 ~]# vgcreate vg0 /dev/md0p{1,2,3}   ´´½¨¾í×é£¬Èç¹ûÊ¹ÓÃ²ÎÊı-s£¬ºóÃæ¸úÉÏpeµÄ´óĞ¡£¬¿ÉÒÔÖ¸¶¨pe´óĞ¡À´»®·Ö¡££¨±ÈÈç -s 16£©
+[root@centos6 ~]# lvcreate -n lv0 -L 1000M vg0   ´´½¨Âß¼­¾í£¬Èç¹ûÏ£ÍûÌí¼ÓLEµÄÊıÁ¿£¬Ê¹ÓÃ-l²ÎÊı¡££¨±ÈÈç -l 25£¬±íÊ¾Ìí¼Ó25¸ö4M´óĞ¡pe£©
+[root@centos6 ~]# lvextend -l +115 /dev/vg0/lv0   À©Õ¹Âß¼­¾ílv0µÄ´óĞ¡£¬À©Õ¹µÄÊıÁ¿ÊÇÌí¼Ó115¸öPE¡£
+[root@centos6 ~]# resize2fs /dev/vg   ¼¤»îÀ©Õ¹µÄÂß¼­¾í
+[root@centos6 test]# vgextend vg0 /dev/md0p4  À©Õ¹¾í×éµÄ´óĞ¡£¬Ç°ÌáÊÇÓĞ×ã¹»µÄÎïÀí¾í
+
+Âß¼­¾íµÄËõĞ¡·Ç³£ÓĞ½²¾¿£¬±ØĞëÑÏ¸ñ°´ÕÕÏÂÃæ²½Öè²Ù×÷£¨Êµ¼Ê¹¤×÷ÖĞ²»Ê¹ÓÃËõĞ¡·½Ê½£¬ÈİÒ×Ôì³ÉÊı¾İ¶ªÊ§£©£º
+[root@centos6 ~]# umount /dev/vg0/lv0   Ğ¶ÔØ
+[root@centos6 ~]# e2fsck -f /dev/vg0/lv0   Ö´ĞĞ´ÅÅÌĞ£Ñé
+[root@centos6 ~]# resize2fs /dev/vg0/lv0 1950M  ÉèÖÃµ÷ÕûºóµÄ´óĞ¡
+[root@centos6 ~]# lvreduce -l -265 /dev/vg0/lv0 ¼õÈ¥Âß¼­¾íµÄ´óĞ¡
+[root@centos6 test]# lvcreate -n sn -L 400M -s /dev/vg0/lv0   ´´½¨¿ìÕÕsnapshot£¬²ÎÊı-s±íÊ¾¿ìÕÕ£¬¿ìÕÕÊÇ¹ÒÔØÊ¹ÓÃ 
+[root@centos6 test]# lvremove -f /dev/vg0/sn   É¾³ı¿ìÕÕ
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
