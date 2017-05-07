@@ -1630,6 +1630,88 @@ lv  逻辑卷
 [root@centos6 test]# lvremove -f /dev/vg0/sn   删除快照
 
 
+计划任务
+1、at 一次性任务  （atd）
+at now + 12minutes 
+at 10am tomrrow
+at 6am + 3days
+vim /etc/at.allow
+vim /etc/at.deny 
+
+2017/05/07  
+crontab   周期性、循环往复执行的计划任务
+[root@centos6 ~]# crontab -l -u tom  查看特定用户是否存在计划任务
+[root@centos6 ~]# crontab -e  设置当前用户的计划任务
+[root@centos6 cron]# pwd     
+/var/spool/cron   这个目录下记录的就是用户的计划任务文件
+#分钟 小时  天    月     周    命令
+*      *     *     *      *    /usr/bin/echo hello
+#每天早晨7点执行一个
+0      7     *     *      *    /usr/bin/bash xx.sh
+#每个工作日凌晨2点执行脚本任务
+0      2     *     *     1-5   echo xxx
+#每天凌晨3点到3点半每隔5分钟执行一次任务
+0-30/5 3     *     *      *    echo xxx
+#在2月开始1号到10号以及15号每天9点45执行任务
+45     9  1-10,15  2      *    echo  xxx
+#凡是满31的月从1号到10号，以及15号的晚上8点25和非工作日执行
+25    20   1-10,15  1,3,5,7,8,10,12  6,7   echo xxx
+0     *    *    *    *   /etc/init.d/sshd restart
+
+[root@centos6 cron]# vim /etc/cron.deny   将tom用户放入黑名单，tom不再具备使用crontab的权限
+[jarry@centos6 ~]$ vim /etc/cron.allow  使用白名单，默认不存在，手动创建
+
+[root@centos6 ~]# cat /var/spool/anacron/cron.daily 
+查看最近一次哪一天执行的anacron
+
+
+Daemons 系统服务
+守护进程 
+独立的：每一个服务会自己监听自己的端口，比如web服务器就会有一个进程监听自身的80端口
+非对立：super daemon 通常都是由xinetd统一管理
+端口：/etc/service    1-1024以下都是常用端口
+
+[root@centos6 init.d]# yum install xinetd   安装xinetd，用它来管理其他的不具备守护进程的服务
+[root@centos6 init.d]# cd /etc/xinetd.d/   非独立服务存放路径
+每一个daemons都有一个配置文件，daemons的启动会根据配置文件中的设定来执行，所以每次修改完配置文件如果希望daemons按需求执行，需要重启服务。同样，xinted也是一个daemons，它的配置文件在/etc/xinetd.conf
+[root@centos6 ~]# vim /etc/xinetd.conf   配置xinetd
+
+      cps             = 50 10   同一秒内最多允许50个链接，如果超过，对外服务暂停10s
+        instances       = 50
+		同一个实例最大链接数50个
+        per_source      = 10
+同一个来源最多10个
+
+tcpwrapper防火墙
+[root@centos6 ~]#ls /etc/hosts.    
+hosts.allow  hosts.deny 
+allow提供的是白名单，deny提供的是黑名单
+in.telnetd: 192.168.24.4:spawn wall "xxxxxxxxx"  
+匹配成功后执行spawn后的指令
+
+in.telnetd: 192.168.24.4:twist wall "xxxxxxxxx"
+twist的语法不能放在allow名单中，因为twist是匹配成功后立即终止并执行twist后的指令
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
