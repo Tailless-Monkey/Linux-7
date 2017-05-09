@@ -1692,7 +1692,104 @@ in.telnetd: 192.168.24.4:spawn wall "xxxxxxxxx"
 in.telnetd: 192.168.24.4:twist wall "xxxxxxxxx"
 twist的语法不能放在allow名单中，因为twist是匹配成功后立即终止并执行twist后的指令
 
+2017/05/09  日志服务器
+1、日志服务器
+rsyslog替代了syslog（默认集成）
+[root@centos6 ~]# cat /var/log/dmesg   查看内核启动
+[root@centos6 ~]# cat /var/log/maillog  查看邮件的日志
+[root@centos6 ~]# cat /var/log/messages  记录系统服务日志
+[root@centos6 ~]# cat /var/log/cron  显示所有计划任务的日志
+[root@centos6 ~]# cat /var/log/secure  查看用户登录信息
+[root@centos6 ~]# cat /var/log/btmp  记录所有登录失败的信息
+[root@centos7 ~]# systemctl restart rsyslog.service 
 
+日志服务器的配置
+[root@centos7 ~]# vim /etc/rsyslog.conf 
+标准格式：
+事件.级别                日志记录的位置            
+
+事件分类:
+authpriv   和认证有关的事件
+mail       邮件系统有关的事件
+cron       跟计划任务有关的事件
+kern       内核有关的
+syslog     日志服务有关
+news       跟新闻系统有关的事件
+daemons    跟守护进程有关的事件
+local0-local7    用户自定义事件
+
+级别：从高往低
+emerg  恐慌级别
+alert  紧急
+cirt   临界，有严重错误出现
+err    错误
+warning警告
+notice 需要关注
+info   提供所有信息（正常消息）
+debug  开发者使用的调试级别
+
+日志记录的规则
+*.info                    /var/log/test.log
+.=    前面的事件必须等于后面的级别才记录日志 
+.!    表示不等于，除了定义的级别以外的都记录
+
+[root@centos7 log]# vim /etc/rsyslog.conf   自定义日志
+local0.*                                 /var/log/ssh.log
+[root@centos7 log]# vim /etc/ssh/sshd_config   修改ssh的日志事件类型
+ 43 SyslogFacility local0
+重启服务生效
+
+日志的格式：
+May  9 19:09:07 centos7 sshd[14114]: Server listening on 0.0.0.0 port 22.
+datetime
+hostname
+server[pid]
+action
+
+[root@centos7 log]# tailf debug.log  实时查看日志
+[root@centos7 log]# journalctl  -p  emerg  只查看和恐慌级别有关的日志
+[root@centos7 log]# journalctl  --since today  只查看和今天有关的日志
+[root@centos7 log]# journalctl --since "2017-05-01" --until today
+查看特定时间段的日志
+  
+2、中央日志服务器
+客户端配置如下：@@表示tcp连接，@表示udp连接
+local5.debug             @@192.168.24.240:514
+服务器端开启：  如果修改默认的端口514，需要注意selinux
+$ModLoad imtcp
+$InputTCPServerRun 514
+
+3、日志备份
+
+/var/log/messages   当前日志
+一周  messages3 
+/var/log/messages  新的
+一周  messages2
+/var/log/messages  新的
+一周  messages1
+/var/log/messages  新的
+
+ logrotate   这个是系统预装的日志轮循工具
+[root@centos7 ~]# vim /etc/logrotate.conf   日志轮循配置文件
+ 35 /var/log/messages {     定义要求回滚的日志
+ 36     weekly          每一周轮循一次，可以用size=10M
+ 37     rotate 4        保留4份，第五份开始删除时间最久的那份
+ 38     compress        要求归档时用gzip压缩
+ 39     delaycompress   延时压缩，对当前的最近的要轮循的日志不压缩
+ 40     missingok       如果日志不存在忽略
+ 41     notifempty      如果日志为空不轮循
+ 42     create 0664 root root   轮循后生成新的日志
+ 43     postrotate       这个参数和endscript是一个整体，它们中间可以跟上指令，下面的指令表示在轮循完成后重启rsyrlog
+ 44         /usr/bin/killall -HUP rsyslog   
+ 45     endscript                
+ 46 }  
+
+4、日志分析
+AIDE    yum install aide  -y      
+aide  -i  
+aide  --check  
+logwatch  perl写的一个开源的日志分析工具，它主要是可以很方便的实现对日志的摘要，但它不是用来实时监控的。
+[root@centos7 ~]# vim /etc/logwatch/conf/logwatch.conf  主配置文件
 
 
 
