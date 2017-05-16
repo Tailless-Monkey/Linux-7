@@ -1791,6 +1791,135 @@ aide  --check
 logwatch  perl写的一个开源的日志分析工具，它主要是可以很方便的实现对日志的摘要，但它不是用来实时监控的。
 [root@centos7 ~]# vim /etc/logwatch/conf/logwatch.conf  主配置文件
 
+2017/05/11  网络配置
+NetworkManager  图形化网络管理daemons
+[root@centos6 ~]#  /etc/sysconfig/network-scripts/ifcfg-eth0   网卡的配置文件
+centos6中对服务的开启自动启动控制通过命令chkconfig
+[root@centos6 ~]# chkconfig --list  NetworkManager 
+查看这个daemons在什么级别下会自动启动
+[root@centos6 ~]# chkconfig NetworkManager off
+在当前级别下关闭此服务
+注：bash-completion 这个可以实现tab补全，系统最小化安装需要自己安装这个包
+centos7中设置服务开机不自动启动
+[root@centos7 ~]# systemctl disable  NetworkManager
+通过mask可以将服务锁住
+[root@centos7 ~]# systemctl mask  NetworkManager
+centos中命令行网络配置：
+[root@centos6 ~]# ifconfig lo 1.1.1.1 netmask 255.255.0.0 up
+[root@centos6 ~]# ip addr  查看网卡信息
+[root@centos6 ~]# ip link show lo
+查看网卡的二层信息
+[root@centos6 ~]# ip addr show lo
+查看网卡三层信息
+注：在centos7中，如果是最小化安装，默认是没有ifconfig指令的，只有ip addr。需要安装net-tools工具包
+[root@centos6 ~]# ifdown lo
+关闭网卡，开启使用ifup 
+[root@centos6 ~]# ip link set lo down
+二层关闭网卡
+[root@centos6 ~]# ip addr add 192.168.1.1/24 dev lo label lo:1
+配置一块网卡多个ip
+[root@centos6 ~]# ifconfig lo:2 192.168.3.3  netmask 255.255.255.0 up
+
+注：命令行下的所有操作都是临时有效，如果希望永久生效，需要修改配置文件
+[root@centos6 ~]# route add default gw 192.168.24.254
+添加网关
+
+[root@centos6 ~]# tcpdump -i eth0
+网卡抓包
+[root@centos6 ~]# tcpdump -i eth0 src host 192.168.24.4 and dst host 192.168.24.240 
+下载工具：wget、lrzsz
+dns查询：nslookup
+字符化浏览器：elinks
+
+rhel7命令行网络配置
+[root@centos7 ~]# nmcli connection show --active
+查看当前活跃的网卡所有名称信息
+[root@centos7 ~]# nmcli connection show eno16777736 
+查看网卡的所有信息
+
+
+[root@centos6 ~]# vim /etc/sysconfig/network
+修改主机名，配置文件中的修改事永久生效的
+[root@centos7 ~]# vim /etc/resolv.conf 
+设置dns信息
+[root@centos7 ~]# vim /etc/hosts
+本地解析
+
+桥接：
+[root@centos7 ~]# yum install bridge-utils bash-completion-extras -y
+安装桥接和补全工具
+[root@centos7 ~]# brctl show 
+查看当前的网桥设备
+[root@centos7 ~]#brctl addbr br0 添加一个名为br0的网桥设备
+[root@centos7 ~]#brctl addif br0 eno16777736 将物理网卡连接到网桥设备
+[root@centos7 network-scripts]# vim ifcfg-br0  修改网桥配置文件
+  1 TYPE=Bridge
+  4 NAME=br0
+  5 DEVICE=br0
+  6 ONBOOT=yes
+ 
+[root@centos7 network-scripts]# vim ifcfg-eno16777736  修改物理网卡配置，添加桥接功能
+  1 TYPE=Ethernet
+  2 BOOTPROTO=dchp
+  3 NAME=eno16777736
+  4 ONBOOT=yes
+  5 HWADDR=00:0C:29:6B:C0:3A
+  6 BRIDGE=br0
+
+2017/05/16
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
