@@ -1866,7 +1866,126 @@ rhel7命令行网络配置
   5 HWADDR=00:0C:29:6B:C0:3A
   6 BRIDGE=br0
 
-2017/05/16
+2017/05/16 链路聚合
+链路备份  activebackup
+负载均衡  loadbalance 
+轮循      roundrobin  
+[root@centos7 ~]# nmcli connection show  查看当前网卡的信息
+[root@centos7 ~]# nmcli connection add type team con-name  team0 ifname team0 config '{"runner":{"name":"loadbalance"}}'
+通过nmcli创建一块虚拟网卡，虚拟网卡的类型是链路聚合，名称是team0，然后通过json定义使用的模式是负载均衡
+[root@centos7 ~]# nmcli connection modify team0 ipv4.address ‘ip 网关 ’
+[root@centos7 network-scripts]# nmcli connection add type team-slave con-name team-port1 ifname eno16777736 master team0 
+定义类型为链路聚合组中的从设备类型，将名为eno16777736的网卡添加到主设备team0中，并生成名为team-port1的配置文件
+[root@centos7 ~]# teamdctl team0 state   查看链路聚合网卡的状态
+  1 NAME=team-port1
+  2 BOOTPROTO=none
+  3 DEVICE=eno16777736
+  4 ONBOOT=yes
+  5 TEAM_MASTER=team0
+  6 DEVICETYPE=TeamPort                    
+网络环境设置
+vim /etc/udev/rule.d/70-persistent-net.rules   这个文件定义了网络设备命令的规则以及相关的信息制定
+[root@a ~]# route add default gw 10.0.0.1  添加默认网关
+
+[root@b ~]# route add -net 30.0.0.0/24 dev eth1  添加路由，代表如果要去往目的30.0.0.0网段，数据包走eth1
+
+[root@c6 ~]# iptables -F 临时关闭防火墙
+[root@c7 ~]# firewall-cmd set-default-zones=trusted   放行所有
+
+如果希望配置永久生效
+开启ipv4转发
+[root@centos6 ~]# vim /etc/sysctl.conf 
+[root@centos6 ~]# sysctl -p  不重启生效
+[root@centos6 network-scripts]# vim route-eth1  配置路由永久生效
+30.0.0.0/24  via 20.0.0.2 dev eth1
+
+开源路由方案：openwrt、routeros
+
+2017/05/18
+防火墙:
+硬件防火墙--数据包过滤
+软件防火墙--tcpwrapper\iptables\ebtables\firewalld
+
+包过滤防火墙技术：在网络层对数据包进行筛选（过滤），通过ACL。
+代理服务防火墙技术，典型的就是链路级的网关。反向代理技术就是如此，典型的应用就是Nginx。
+
+linux内核级别直接实现防火墙功能。
+iptables就是依赖的netfilter
+rhel7中使用的firewalld依然依赖的是netfilter，但是管理工具使用firewall-cmd
+
+iptables直接由内核驱动运行，编写规则也是从上往下，并且一旦匹配某一条目，就不再往下匹配，不同服务之间规则互不影响。
+iptables 表（table）
+表分为filter表和nat表
+[root@centos6 ~]# iptables -t nat -L -n  查看nat表的规则。参数t是table的意思，参数L是列表的意思。参数n是禁止反向解析。
+[root@centos6 ~]# iptables  -L -n
+不指明查看的表，默认就是filter表。
+
+iptables 链（chain）
+filter表的三条链：
+INPUT    进入的数据
+FORWARD  转发的数据
+OUTPUT   出去的数据
+nat表的三条链：
+PREROUTING  目的地址转换
+POSTROUTING  源地址转换
+OUTPUT   防火墙自身访问时是否转换
+
+iptables中filter表的语法：
+[root@centos6 ~]# iptables -t filter  \
+> -A|D|I   \   添加|删除|插入
+> INPUT|OUTPUT|FORWARD      \ 指定链
+> -p tcp|udp|icmp    \ 指定协议
+> -s 1.1.1.1/24   -d 2.2.2.2/24  \
+源地址和目的地址
+> --sport m:n --dport m:n   \
+源端口和目的端口
+> -j ACCEPT|REJECT|DROP|LOG  执行动作，允许|拒绝|丢弃|记录
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
