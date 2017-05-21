@@ -1941,6 +1941,109 @@ iptables中filter表的语法：
 源端口和目的端口
 > -j ACCEPT|REJECT|DROP|LOG  执行动作，允许|拒绝|丢弃|记录
 
+rhel7--firewalld
+rhel7中默认开启的是firewalld，另外还可以使用iptables，或者ebtables。
+为了防火墙之间的冲突，将不使用的彻底禁用。
+[rot@rhel7 ~]# systemctl stop ebtables.service  关闭ebtables
+[rot@rhel7 ~]# systemctl disable ebtables.service   禁止开机启动
+[root@rhel7 ~]# systemctl mask ebtables.service   禁用ebtables
+
+firewalld 有两种状态，一种是runtime，一种是permanent。runtime是默认状态，在这个状态下做的设置，立即生效，但服务或服务器一旦重启，失效。
+permanent状态是永久生效的，但在这个状态下做的配置必须在服务或者服务器重启后才会永久生效。
+
+firewall的中添加了区域的概念：
+drop区域提供最严格的策略，丢弃所有
+block区域提供和drop一样的策略，但是会给出提示信息
+trusted区域提供最宽松的策略，放行所有
+public是默认的策略
+针对不同的区域提供不同的默认策略，可以针对services（具体服务）、ports端口、nat、端口映射、icmp过滤以及富规则进行设置。
+[root@rhel7 ~]# firewall-cmd --set-default-zone=public 
+设置默认区域
+[root@rhel7 ~]# firewall-cmd --get-default-zone 
+查看当前默认区域
+
+[root@rhel7 ~]# firewall-cmd  --add-rich-rule='rule family=ipv4 service name=vnc-server source address=1.1.1.1 reject'
+添加富规则
+[root@rhel7 ~]# firewall-cmd --add-forward-port port=80:proto=tcp:toaddr=20.0.0.2:toport=80
+添加端口转发
+
+
+通过gnupg加密保护文件
+10101010101   
+01010101010
+abcdefghijklmopqrstuvwxyz
+ abcdefghijklmopqrstuvwxyz
+ 
+对称加密：DES、3DES、AES、RC5
+原始数据：01000001
+公    钥：10101010
+XOR运算： 00010100
+优点：快，加密效率高，解密性能好
+缺点：密钥配送问题，如果安全传递公钥
+典型应用：wep
+
+非对称加密：RSA
+rsa  公钥  私钥
+密文=明文的E次方除以N，得到的余数就是密文
+明文=密文的D次方除以N，得到的余数就是明文
+以上公式中E和N的结合就是公钥，D和N的结合就是私钥。
+n=q*p  
+l=（-1，p-1）
+ECC 比RSA的密钥长度更短，但是安全性更高。
+应用场景：ssh  https  
+优点：安全性高
+缺点：性能差，开销很大，存在中间人攻击。
+
+混合算法：对称+非对称
+对称加密算法加密消息
+用非对称算法传递对称加密算法中的会话密钥
+
+数字签名
+单向散列函数 md5  sha1 sha256 sha512
+消息认证码MAC：
+发送方和接收方预共享密钥
+发送发加密预共享密钥（用消息认证码加密）
+接收方收到后也进行同样操作，并对比两人的结果是否一致
+
+数字签名过程：公钥和私钥
+发送方用单向散列函数加密消息
+发送方对私钥对得到的散列值加密，最终得到签名
+接收方用发送方的公钥对签名进行解密
+接收方将解密后的散列和发送方发送的消息进行比对
+
+[root@centos6 ~]# cd ~/.gnupg/
+这个目录下存放了公钥和私钥
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
