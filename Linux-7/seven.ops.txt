@@ -2014,6 +2014,44 @@ ECC 比RSA的密钥长度更短，但是安全性更高。
 [root@centos6 ~]# cd ~/.gnupg/
 这个目录下存放了公钥和私钥
 
+2017/05/25
+BOOTPROTO--DHCP 
+使用UDP协议通信，端口是67和68
+dhcp discovery  客户端向服务器端发起的，用于查询dhcp服务器的位置，服务器端的67号端口用来监听此类包
+dchp offer 是服务器端通过68号端口向客户端发起的响应
+dchp request 是客户端向服务器端发起的请求，要求确认使用具体的ip等信息的。使用广播方式，如果存在其他的dhcp服务器，在收到这个广播包后，知道客户端已经选择了dhcp，会撤回前面发出的offer的信息。
+dhcpack 这个是服务器端对客户端的信息的请求的回复。
+dhcpnak  服务端发送给客户端，通常是因为地址过期或者无效
+dchpdecline  客户端发送给服务器端，通常是地址被占用
+dchpinfrom  客户端向服务器端申请参数
+
+[root@centos6 ~]# yum install dhcp -y  安装dhcp服务
+[root@centos6 ~]# iptables -I INPUT 1 -p udp --dport 67 -j ACCEPT
+[root@centos6 ~]# iptables -I INPUT 1 -p udp --dport 68 -j ACCEPT
+[root@centos6 ~]# service iptables save
+[root@centos6 ~]# cp /usr/share/doc/dhcp-4.1.1/dhcpd.conf.sample /etc/dhcp/dhcpd.conf   生成配置文件
+作用域格式：
+subnet ip netmask {       
+ 中间写这个作用域的信息  
+   }
+
+[root@centos6 ~]# cat /var/lib/dhclient/dhclient-eth0.leases  在客户端上可以查看dhcp的租约等数据信息
+
+
+超级作用域格式：
+shared-network 11-22 {
+	subnetsubnet ip netmask {       
+ 中间写这个作用域的信息  
+   } 
+   subnet ip netmask {       
+ 中间写这个作用域的信息  
+   }
+   subnet ip netmask {       
+ 中间写这个作用域的信息  
+   }
+
+}
+
 
 
 
