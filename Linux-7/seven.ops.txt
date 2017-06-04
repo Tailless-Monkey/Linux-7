@@ -2052,6 +2052,166 @@ shared-network 11-22 {
 
 }
 
+2017/06/01   DNS服务器
+Domain name server  实现的是主机域名和ip的映射
+dns  udp协议   端口53   tcp协议 
+工作方式：递归和迭代
+www.baidu.com.
+主机名.三级域名.二级域名.顶级域名.根域
+
+dns的递归查询：客户端--服务器
+13台根域服务器  A-M 
+dns的迭代查询：服务器--服务器
+
+rhel6中的named
+1、服务器的安装（chroot）
+[root@RA ~]# yum install bind bind-chroot -y
+安装dns服务器了，出于安全考虑，我们同时安装chroot用来隔离环境。主要是防止渗透者在攻破dns服务器后在真实根目录下的一些操作。
+注：默认情况下dns服务器的主配置文件是/etc/named.conf，数据文件在/var/named/目录下。但是，因为我们使用了chroot隔离，所以，默认的文件我们都不使用。chroot后的根是/var/named/chroot
+
+[root@RA ~]# service named restart  重启服务后chroot下面的配置文件会自动生成
+[root@RA ~]# vim /var/named/chroot/etc/named.conf 
+查看配置文件
+ 10 options {
+ 11 //从这里开始就是全局的设置,默认只监听自己的，改为监听所有
+ 12         listen-on port 53 { any; };
+ 13         listen-on-v6 port 53 { ::1; };
+ 14 //区域文件存储路径，因为做了chroot，这里的/其实是/var/named/chroot
+ 15         directory       "/var/named";
+ 16 //往下三行内容都是进行统计的
+ 17         dump-file       "/var/named/data/cache_dump.db";
+ 18         statistics-file "/var/named/data/named_stats.txt";
+ 19         memstatistics-file "/var/named/data/named_mem_stats.txt";
+ 20 //允许谁进行DNS查询
+ 21         allow-query     { any; };
+ 22 //是否允许dns转发，理解为我们就是一台从dns服务器
+ 23 //        allow-transfer  { none; };
+ 24 //是否允许递归查询
+ 25         recursion yes;
+ 26 
+ 27 //      dnssec-enable yes;
+ 28 //      dnssec-validation yes;
+ 29 
+ 30         /* Path to ISC DLV key */
+ 31 //      bindkeys-file "/etc/named.iscdlv.key";
+ 32 
+ 33 //      managed-keys-directory "/var/named/dynamic";
+ 34 };
+
+ 
+ zone "google.com" IN {
+        type master;
+        file "google.com.zone";
+};
+
+[root@RA etc]# named-checkconf 
+检测配置文件语法错误，一定要通过语法检测，否则重启服务会导致chroot中的所有配置文件丢失
+
+[root@RA named]# cp named.localhost google.com.zone
+拷贝模板生成指定域的配置文件
+
+[root@RA named]# chown root.named google.com.zone 
+保证新的区域数据文件的所有者和所属组和系统一致
+
+DNS服务器配置中的类型：
+NS--   name server
+A --   address
+PTR--  反向记录
+CNAME--别名
+MX--email
+
+
+$TTL 1D
+@       IN SOA  dns.example.com.  root (
+                                        0       ; serial
+                                        1D      ; refresh
+                                        1H      ; retry
+                                        1W      ; expire
+                                        3H )    ; minimum
+        NS      dns.example.com.
+dns     A       192.168.4.137
+www     A       92.8.4.128
+wap     CNAME www
+ftp      A       192.168.4.137
+[root@RA named]# named-checkzone  example.com example.com.zone  检测域文件的语法 
+ 
+[root@centos6 ~]# host wap.example.com   客户端解析域名
+
+[root@centos6 ~]# host -l  example.com  解析域名中的所有主机
+
+反向解析：在named.conf文件中添加
+zone "4.168.192.in-addr.arpa" IN {
+        type master;
+        file "example.com.arpa";
+};
+[root@DNS named]# cp -rp example.com.zone example.com.arpa  生成反向解析的文件
+
+主从DNS服务器
+为了保证服务的高用性，要求每个区域中有多台dns能提供冗余服务。
+从服务器上同样安装bind 的工具包，然后在主配置文件中修改如下
+zone "example.com" IN {
+        type slave;
+        file "slave/example.com.zone";
+        masters { 192.168.4.137; };
+};
+
+这里数据文件要放在slave目录下。masters是定义的主dns服务器
+
+在主dns服务器上添加如下内容：
+        allow-transfer  { 192.168.4.139; };
+指定授权的从dns服务器
+
+
+
+为了防止主从dns之间被第三方拦截同步信息，可以使用TSIG事务数字签名认证
+[root@DNS chroot]# dnssec-keygen -a HMAC-md5 -b 128 -n HOST hf
+使用工具生成一对密钥。一个是key，一个private
+在主服务器的配置文件中添加如下
+  allow-transfer  { key hf ; };
+
+server 192.168.4.139 {          //这个地址是从的
+        keys { hf ; };
+};
+key  hf { algorithm  hmac-md5;
+          secret RJR+CvADx1dMjJ7pNdNisw== ;
+};
+
+
+在从服务器上做同样的配置
+server 192.168.4.137 {          //这个地址是主的
+        keys { hf ; };
+};
+key  hf { algorithm  hmac-md5;
+          secret RJR+CvADx1dMjJ7pNdNisw== ;
+};
+
+基于视图的DNS解析
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
