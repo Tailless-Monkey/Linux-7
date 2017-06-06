@@ -2187,6 +2187,8 @@ key  hf { algorithm  hmac-md5;
 
 基于视图的DNS解析
 
+2017/06/06  NTP服务器
+
 
 
 
