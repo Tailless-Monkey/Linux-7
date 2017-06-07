@@ -2188,178 +2188,58 @@ key  hf { algorithm  hmac-md5;
 基于视图的DNS解析
 
 2017/06/06  NTP服务器
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+1884年  国际子午线
+格林威治  英国   GMT
+原子钟
+UTC 协调世界时
+夏令时
+win操作系统默认使用的是UTC时间
+linux系统默认使用的是bios时间（晶震电路）
+RHEL6中的NTP服务器
+[root@DNS ~]# service ntpd status   查看服务器状态
+[root@DNS ~]# service ntpd restart   重启ntp服务器
+[root@DNS ~]# cat /etc/sysconfig/clock   查看当前时区
+[root@DNS ~]# vim /etc/ntp.conf 
+
+ restrict default kod nomodify notrap nopeer noquery
+权限  默认
+kod 是不接受kod的包，错误发送的包，容易被利用为ddos攻击包
+nomodify 不接受客户端发起的修改ntp参数的请求
+notrp  不接受trap陷阱包，trap包是可以远程调用日志的
+nopeer  上下级的ntp关系断开，下级ntp服务器不能请求同步
+noquery  客户端不允许发送ntp请求
+
+备注：具体配置查看相关服务配置文件
+[root@DNS ~]# chkconfig ntpd on   重启服务后设置开机启动
+
+[root@DNS ~]# ntpstat  查看当前ntp服务器的状态
+synchronised to NTP server (51.15.41.135) at stratum 3 
+   time correct to within 427 ms
+   polling server every 64 s
+
+[root@DNS ~]# ntpq -p   linux客户端可以查看和上层ntp服务器的连接
+
+昨天实验中出现的一些问题以及可能出现的问题汇总：
+1、xp连接失败，报错时间例子被拒绝，对等机器太少。
+这个查阅了文档，发现是昨天设置的时间拉的太长导致。xp的时间差尽量不要大于24小时以上。另外，xp和ntp的连接需要15分钟左右。所以可以耐心等待一段时间，我后面看了下，一段时间后它自己连上了。
+2、ntpdate手动同步时报错，socket被连接占用
+ntpdate时如果ntpd服务器开启情况下会冲突，需要先停止ntp服务器。另外ntpdate建议在ntp启动前运行一次就可以，不要经常运行。它可能会引起时间的跳跃，让时间不按线性流动，造成一些特定程序的bug。
+
+
+rhel7中的时钟服务器 chrony
+chronyd和chronyc
+chronyd是一个后台运行的守护进程，用于调整内核中运行的系统时钟和时钟服务器同步。它确定计算机增减时间的比率，并对此进行补偿。
+chronyc用来实现监控和配置
+优点是比ntpd在时钟的弥补上更先进，同时在时钟的准确率上有改进，同步上也更加精确。
+
+[root@centos7 /]# yum install chrony\*   安装
+[root@centos7 /]# systemctl enable chronyd    开机启动
+[root@centos7 /]# systemctl restart chronyd   重启
+[root@centos7 /]# systemctl status chrony   查看状态
+[root@centos7 /]# chronyc sources -v   查看和上层同步状态
+注：配置文件上传github
+
+ 
 
 
 
