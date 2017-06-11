@@ -2239,7 +2239,103 @@ chronyc用来实现监控和配置
 [root@centos7 /]# chronyc sources -v   查看和上层同步状态
 注：配置文件上传github
 
- 
+2017/06/08  APACHE 
+apache    a patchy server 一个打满补丁的服务器
+tomcat 
+nginx
+IIS
+web  网站服务器 C/S 
+HTTP  端口80   daemons  httpd
+[root@DNS ~]# yum install httpd\* -y  安装apache
+[root@DNS ~]# vim /etc/httpd/conf/httpd.conf 
+apache的主配置文件
+
+基于htaccess的验证
+vim .htaccess
+AuthName xxxxxxxxxx
+AuthType Basic
+AuthUserFile /var/www/html/.htpasswd
+Require user tom
+               
+[root@DNS html]# htpasswd -c -m .htpasswd tom 创建一个密码文件
+
+然后修改主配置文件，对目录权限重新定义
+<Directory "/var/www/html/xx">
+    Options FollowSymLinks
+    AllowOverride Authconfig    主要修改这里
+    Order deny,allow
+    allow from all
+</Directory>
+
+基于主机名的虚拟主机--用户通过不同的域名访问不同的网站，用户访问的不同的网站其实存在于同一台主机。这些不同的站点在同一台服务器上，我们就叫虚拟主机。
+
+基于IP地址的虚拟主机--在同一台服务器上提供多个ip地址访问不同的域名
+[root@DNS ~]# ip addr add 192.168.24.5/24 dev eth0 label eth0:1
+[root@DNS ~]# ip addr add 192.168.24.6/24 dev eth0 label eth0:2
+在一块网卡上设置多个ip
+
+基于端口的虚拟主机
+
+
+在rhel7中如果修改了默认的http端口，除了防火墙要放行，开启selinux的情况下，还要修改端口的上下文
+[root@centos7 ~]# yum whatprovides semanage
+安装工具
+
+WEB的TLS
+SSL  网景  secure socket layer
+TLS 传输层安全   是一个国际标准 ，几乎所有涉及到金融的网站都会使用https，目前更多其他领域的网站也在加入https行列。 
+https的使用中RSA AES MD5 SHA，还包括证书。证书本身就是一对密钥（非对称算法，RSA或ECC）
+HTTPS的传输原理：
+1、客户端----服务器端
+向服务器端（web服务器）发起请求，请求中包含自身能够使用的加密算法或者压缩算法
+2、服务器----客户端
+如果服务器在收到的客户端的工具集中发现有自己无法使用的算法，那么拒绝连接。反之服务器端向对方发送自己可以使用的哪些算法，并把这些信息放在证书中发送给客户端（证书注册的时间、注册的机构、有效期、失效期以及网址等信息）
+3、客户端----服务器
+客户端收到这些信息后，首先判断证书的合法性。如果证书没有被授信，那么用户可以自己决定是不是要继续访问站点。如果证书合法，这时客户端生成一个随机数，用服务器证书中的公钥加密，这步是为了防止数据传输中被窃听。用前二次交流中确定的hash算法对消息做数字签名，一起发送给服务器端。
+4、服务器----客户端
+服务器端对收到的消息用私钥解密，获取随机数（密码），然后通过hash比对，判断消息的一致性。
+5、后面的连接客户端用随机数使用对称算法加密和服务器端进行数据传输。如果中间连接断开，那么重复上面的步骤。这个过程中，两边协商的对称加密的密码都只有双方知道了，不存在中间人攻击等可能。
+为什么要认证证书？
+整个传输过程中的加密算法和实现方式都是透明的，不存在任何秘密，也就意味着理论上任何人可以生成证书。
+有专门可信赖的第三方的证书认证机构，最顶层的叫root ca。
+
+[root@centos7 ~]# yum install mod_ssl  安装apache的ssl模块
+[root@centos7 ~]# vim /etc/httpd/conf.d/ssl.conf 
+配置ssl模块
+[root@centos7 conf]# cd /etc/pki/tls/certs/
+进入目录
+[root@centos7 certs]# make /etc/httpd/conf/test.crt
+生成证书
+
+
+针对特殊站点的认证
+
+
+web站点压力测试
+[root@DNS conf]# ab -n 20000 -c 10000 www.test.com/index.html
+
+[root@c7 ~]# yum install webalizer 用epel源安装
+[root@c7 ~]# vim /etc/httpd/conf.d/webalizer.conf 
+[root@c7 ~]# webalizer   启动
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
 
 
 
