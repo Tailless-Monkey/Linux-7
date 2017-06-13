@@ -2318,6 +2318,91 @@ web站点压力测试
 [root@c7 ~]# vim /etc/httpd/conf.d/webalizer.conf 
 [root@c7 ~]# webalizer   启动
 
+2017/06/13  数据库
+oracle  甲骨文 
+mysql    SUN（oracle）  开源
+sqlserver 微软
+mariadb  （rhel7）  红帽收编了mysql的开发团队
+nosql  
+
+yum install mariadb\*   
+systemctl start mariadb.service 
+firewall-cmd --add-service=mysql
+mysql 登入数据库，默认以root@localhost身份登录，不同于root，这个身份只能本地登录。
+MariaDB [(none)]> select user();
+MariaDB [(none)]> select version()；
+MariaDB [(none)]> select engines
+MariaDB [(none)]> show databases;  查看当前mariadb中有哪些数据库
+[root@xxl ~]# vim /etc/my.cnf  数据库配置文件
+MariaDB [(none)]> system clear  在数据库中使用系统指令
+MariaDB [(none)]> \! clear  数据库中使用系统指令
+MariaDB [(none)]> create database rhel7;  创建名为rhel7的数据库
+MariaDB [(none)]> drop database rhel7;  删除数据库
+MariaDB [(none)]> create database rhel7 charset=gbk;
+指定编码创建数据库
+MariaDB [(none)]> alter database rhel7 charset=utf8;
+修改数据库的编码
+MariaDB [(none)]> use rhel7;  进入数据库rhel7
+MariaDB [rhel7]> show tables; 查看数据库里的表
+MariaDB [rhel7]> create table xx ( id int, name varchar(10), age int, email varchar(20));
+创建一张表
+MariaDB [rhel7]> desc xx; 查看表类型
+MariaDB [rhel7]> select * from xx;查询表中的内容，* 表示所有
+MariaDB [rhel7]> insert into xx  (id,name,age,email)  values(1,'tom',24,'tom@qq.com');
+向表中插入内容
+MariaDB [rhel7]> rename table xx to google; 改名
+MariaDB [rhel7]> select * from google where name='jarry';  搜索时加上条件，where是一个关键词，用来在前面的结果中去过滤
+MariaDB [rhel7]> alter table google drop age;
+删除某一列
+MariaDB [rhel7]> alter table google add phone int;
+添加一列
+MariaDB [rhel7]> alter table google add phone int(11) after name;
+指定列所在的位置
+MariaDB [rhel7]> select phone from bb where 
+    -> id=(select id from aa where name='bob');
+	通过表连接查询
+MariaDB [rhel7]> select * from aa join bb;
+通过多表查询，但通过这种方式获取的结果会产生笛卡尔积
+MariaDB [rhel7]> select * from aa join bb using(id);
+优化后的多表查询
+MariaDB [rhel7]> select phone from aa join bb using(id) where name='bob';
+多表查询bob的电话
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
