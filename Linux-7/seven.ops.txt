@@ -2367,6 +2367,57 @@ MariaDB [rhel7]> select * from aa join bb using(id);
 优化后的多表查询
 MariaDB [rhel7]> select phone from aa join bb using(id) where name='bob';
 多表查询bob的电话
+MariaDB [rhel7]> update bb set sal=4800 where id=2;
+更新bb表中id为2的sal列的值
+MariaDB [rhel7]> select count(*)  from  aa;
+统计aa表的row数值
+MariaDB [mysql]> select user,host,password from user;
+按指定的column查看表中的内容
+MariaDB [mysql]> select * from rhel7.aa
+
+为数据库设置密码
+MariaDB [mysql]> set password=password("redhat");
+[root@centos7 ~]# mysqladmin -uroot -p password 设置密码
+[root@centos7 ~]# mysql -uroot -hlocalhost -p 
+通过密码登录
+
+MariaDB [(none)]> update user set password=password("centos")  where host='localhost' and user='root';  更新系统密码
+MariaDB [(none)]> flush privileges;
+刷新缓存，让配置生效
+
+一、重置数据库密码：
+MariaDB [(none)]> update mysql.user set password=null;    清空数据库中的所有密码
+
+二、通过安全模式重置密码
+首先停止运行数据库
+[root@centos7 ~]# vim /etc/my.cnf
+ 10 skip-grant-tables
+让数据库进入安全模式
+
+使用命令增加数据库密码安全
+[root@centos7 ~]# mysql_secure_installation 
+
+设置数据库管理员
+MariaDB [mysql]> create user tom@localhost;  这种方式创建的用户只能本地登录
+MariaDB [mysql]> create user tom
+这个用户可以在任何地点登录
+MariaDB [mysql]> grant create on rhel7.aa to tom@'192.168.24.4' identified by 'tom';  赋权tom用户使用密码tom登录数据库rhel7下的aa表具有创建的权限
+MariaDB [mysql]> grant drop on rhel7.cc to tom@'192.168.24.4' ;
+赋权用户对数据库中的表具有删除的权限
+MariaDB [mysql]> revoke drop on rhel7.cc from tom@'192.168.24.4';
+从用户端收回权限drop，注意连接关键词是from
+
+数据库的备份和恢复
+[root@centos7 ~]# mysqldump  这个工具专门用来提供数据库的库和表的备份
+[root@centos7 ~]# mysqldump -uroot -p rhel7 aa > aa.bak
+使用重定向的方式完成备份，备份后的数据是用二进制表示的日志文件，如果不重定向，只会在终端输出。
+MariaDB [rhel7]> source /root/aa.bak
+恢复表
+[root@centos7 ~]# mysqldump -uroot -p rhel7 > rhel7.bak 
+备份数据库中的所有表
+[root@centos7 ~]# mysqldump -uroot -p rhel7 < rhel7.bak 
+恢复数据库
+
 
 
 
