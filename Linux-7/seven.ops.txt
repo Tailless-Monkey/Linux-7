@@ -2419,16 +2419,81 @@ MariaDB [rhel7]> source /root/aa.bak
 恢复数据库
 
 
+3、安装并管理PHP环境
+①安装PHP
+[root@hf ~]# yum install php
+②安装PHP组件，使PHP支持 MariaDB
+[root@hf ~]#yum install php-mysql php-gd libjpeg* php-ldap php-odbc php-pear php-xml php-xmlrpc php-mhash
+③重启mariadb服务
+[root@hf ~]#systemctl restart mariadb
+
+4、配置Apache服务器
+①编辑apache配置文件
+[root@hf ~]#vim /etc/httpd/conf/httpd.conf
+ServerSignature On #添加，在错误页中显示Apache的版本，Off为不显示
+Options Indexes FollowSymLinks #修改为：Options Includes ExecCGI FollowSymLinks（允许服务器执行CGI及SSI，禁止列出目录） 
+AddHandler cgi-script .cgi #修改为：AddHandler cgi-script .cgi .pl （允许扩展名为.pl的CGI脚本运行） 
+AllowOverride None #修改为：AllowOverride All （允许.htaccess） 
+AddDefaultCharset UTF-8 #修改为：AddDefaultCharset GB2312 （添加GB2312为默认编码） 
+#Options Indexes FollowSymLinks #修改为 Options FollowSymLinks（不在浏览器上显示树状目录结构）
+DirectoryIndex index.html #修改为：DirectoryIndex index.html index.htm Default.html Default.htm index.php（设置默认首页文件，增加index.php） 
+MaxKeepAliveRequests 500 #添加同时连接数
+
+②重启apache服务
+[root@hf ~]# systemctl restart httpd
+
+③删除默认测试页面
+[root@hf ~]# rm -f /etc/httpd/conf.d/welcome.conf /var/www/error/noindex.html 
+
+2016/06/18
+LAMP服务器的部署--BBS
+L--linux    作为底层的操作系统
+A--apache   作为web的服务前端
+M--mariadb  数据库用来存储数据
+P--php/perl/python   编程语言
 
 
+1、安装apache并且配置
+2、搭建mariadb服务器并配置
+[root@centos7 ~]# cp /usr/share/mysql/my-huge.cnf /etc/my.cnf
+3、安装php
+yum install php php-mysql php-gd libjpeg* php-ldap php-odbc php-pera php-xml php-xmlrpc php-mahash 
 
+4、配置httpd
+129     Options INCLUDES ExecCGI FollowSymLinks
+#让服务器允许执行CGI等文件，禁止列出目录
+270     AddHandler cgi-script .cgi 
+#允许服务器执行后缀cig的脚本，可以添加其他的自定义脚本的后缀
 
+5、配置php
+[root@hf ~]#vim /etc/php.ini 
+date.timezone = PRC      #把前面的分号去掉，改为date.timezone = PRC 
+disable_functions = passthru,exec,system,chroot,scandir,chgrp,chown,shell_exec,proc_open,proc_get_status,ini_alter,ini_alter,ini_restore,dl,openlog,syslog,readlink,symlink,popepassthru,stream_socket_server,escapeshellcmd,dll,popen,disk_free_space,checkdnsrr,checkdnsrr,getservbyname,getservbyport,disk_total_space,posix_ctermid,posix_get_last_error,posix_getcwd, posix_getegid,posix_geteuid,posix_getgid, posix_getgrgid,posix_getgrnam,posix_getgroups,posix_getlogin,posix_getpgid,posix_getpgrp,posix_getpid, posix_getppid,posix_getpwnam,posix_getpwuid, posix_getrlimit, posix_getsid,posix_getuid,posix_isatty, posix_kill,posix_mkfifo,posix_setegid,posix_seteuid,posix_setgid, posix_setpgid,posix_setsid,posix_setuid,posix_strerror,posix_times,posix_ttyname,posix_uname
+#列出PHP可以禁用的函数，如果某些程序需要用到这个函数，可以删除，取消禁用。
+expose_php = Off #禁止显示php版本的信息 
+magic_quotes_gpc = On #打开magic_quotes_gpc来防止SQL注入 
+short_open_tag = ON #支持php短标签
+open_basedir =                   #写上程序的目录，定义为自己的目录
 
+[root@hf ~]#systemctl restart mariadb.service #重启MariaDB 
+[root@hf ~]#systemctl restart httpd.service #重启apache 
 
+6、测试
+[root@hf ~]# cd /var/www/html 
+[root@hf ~]#vim index.php #输入下面内容
+ <?php 
+phpinfo(); 
+?> 
 
+LEMP 
+L--linux
+N--nginx 俄罗斯
+M--mariadb
+P--php/perl/python
 
-
-
+1、安装nginx
+yum install nginx   通过epel源安装
+yum install php-fpm  
 
 
 
