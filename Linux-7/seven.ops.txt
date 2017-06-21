@@ -2494,6 +2494,154 @@ P--php/perl/python
 1、安装nginx
 yum install nginx   通过epel源安装
 yum install php-fpm  
+systemctl restart php-fpm
+[root@centos7 nginx]# vim /etc/nginx/nginx.conf.default  #查看配置文件模板，复制65到71的内容，将这块内容写入的到nginx.conf文件中
+
+
+NFS服务器配置
+nfs是一种网络共享，它就是NAS的一种展示。和微软的文件共享概念是一样的，区别在于，它只能在类unix系统中使用（其实win也可以使用，不过性能并不是很稳定）
+DAS    直接连接存储 
+NAS    网络连接存储（打印机共享，文件共享）
+SAN    存储区域网络（块共享）
+
+如果有条件的情况下，要尽量送nfs共享（必须使用文件共享的前提），nfs的性能理论来说要高于windows的30%。
+nfs的本身不具备传输的能力，将由rpc模块来完成调用daemons实现传输目的。
+
+nfs的自身端口是tcp和dup的2049，rpc自身的端口是tcp和udp的111，客户端在连接nfs服务器时，rpc负责告诉客户端你要连接的端口是多少，这些端口是由rpc产生的随机产生的。
+[root@DNS ~]# rpcinfo -p  localhost
+查看当前rpc分配的端口号，因为是随机分配的，每次重启服务端口都会变化，这就给防火墙的策略配置带来了问题，我们需要人为的将rcp产生的端口绑定
+[root@DNS ~]# vim /etc/sysconfig/nfs 
+ 20 LOCKD_TCPPORT=6000
+ 22 LOCKD_UDPPORT=6000
+ 57 MOUNTD_PORT=6001
+[root@DNS ~]# iptables -I INPUT -p tcp --dport 111 -j ACCEPT
+[root@DNS ~]# iptables -I INPUT -p udp --dport 111 -j ACCEPT
+[root@DNS ~]# iptables -I INPUT -p tcp --dport 2049 -j ACCEPT
+[root@DNS ~]# iptables -I INPUT -p udp --dport 2049 -j ACCEPT
+[root@DNS ~]# iptables -I INPUT -p tcp --dport 6000 -j ACCEPT
+[root@DNS ~]# iptables -I INPUT -p udp --dport 6000 -j ACCEPT
+[root@DNS ~]# service iptables save
+[root@DNS /]# vim /etc/exports 
+这是设置共享的目录的配置文件
+[root@centos7 ~]# showmount -e 192.168.24.29
+查看remote机器上发布的共享信息
+[root@centos7 ~]# mount 192.168.24.29:/share /xx/
+将共享目录挂载到本地的xx目录下
+[root@DNS share]# cat /var/lib/nfs/etab   挂载成功后这个文件中会记录客户端对共享目录的默认权限
+/share	192.168.24.0/24(rw,sync,wdelay,hide,nocrossmnt,secure,root_squash,no_all_squash,no_subtree_check,secure_locks,acl,anonuid=65534,anongid=65534)
+
+参数说明：ro，rw，sync（立即写入硬盘）
+async--只写入缓存，不写入硬盘
+wdelay--如果多个用户要写入共享目录，就归组写入
+no_wdelay--如果多个用户要写入，立即sync
+hide--默认不共享子目录
+root_squash--root用户的请求会被映射成为匿名用户的权限
+
+[root@DNS share]# vim /etc/exports 
+/share   192.168.24.0/24(rw,sync,no_root_squash)
+设置root用户在共享中的写入保持root的名称和权限
+注：实际的生产环境中如果nfs服务做了修改，不建议重启服务，可以通过重新挂载实现
+[root@DNS ~]# exportfs -arv   使用重新挂载。a表示所有，r表示重新挂载，v表示显示结果
+[root@DNS share]# exportfs -au  卸载当前的共享
+
+rhel7中的nfs
+[root@centos7 /]# systemctl restart rpcbind
+
+2017/06/20  
+LDAP(Lightweight Directory Access Protocol)
+轻量目录访问协议  来自x.500
+tcp 389   636(TLS)
+通用的国际标准协议
+比NIS的性能更好，特别体现是在安全性方面，所以它被称为NIS终结者
+数据库 -- 目录型数据库   关系型数据库  非关系型数据库 
+目录也是用来浏览和查询的专业的分布式数据库，是一种树状结构（类似DNS的查询架构）
+目录型数据库和关系型数据库对比的话，关系型数据库要具有更好的写入性能。它仅仅具有可靠的读性能，适合于目录架构的查询，不利用对需要频繁修改数据的场合使用。
+
+什么样的数据才适合ldap（不需要频繁变更）
+企业的员工信息：电话、姓名、邮箱
+企业的架构信息：部门、车间
+企业的设备信息：服务器的名称、硬件的IP地址、存储的机房信息、购买的时间
+
+什么样的场景需要LDAP？
+假设有10个运维人员，需要维护1000台服务器
+10000个账号
+LDAP  将这个10个账号信息交给ldap
+可以结合NFS实现用户之间的漫游
+
+LDAP服务器的特点：
+LDAP使用树状架构查询，不需要sql语言
+LDAP可以查询快速，但不利于写入（慢）
+LDAP是静态查询
+				example.com
+			dc=example，dc=com
+		ou=origin，ou=people，ou=device
+	cn=admin，cn=sale    ou=IT，ou=makret    sn=print
+                       cn=baby，cn=tom
+
+LDAP术语：
+1、entry
+类似于数据库中的row，是记录的信息，也是ldap最基本的单位，对ldap的所有查询等操作都是以entry为单位的
+dn 每一个条目的唯一的标识
+例：dn "cn=tom,ou=it,out=people,dc=example,dc=com"
+rdn是dn条目中最高权限用户，通常就是条目中最左边的内容
+BASE DN:  dc=example,dc=com
+
+2、属性
+属性是对应的每个条目的具体的信息，比如电话，地址等等。一个条目可以有多个属性。
+cn    注释名称，一般就是人名或者设备名之类的
+ou    组织单位
+o     公司
+ob    内置属性
+内置属性的理解--例如：cn是名，sn是姓，电话tel，密码、邮编等等，条目可以继承类，类来自对象，继承类就是继续对象的属性。
+
+3、schema
+假设数据库是一个盘符，每个目录就是一个实体的数据库（schema），每个目录中包含的文件就是表，每张表都有拥有者，都对自身所在schema具有相应的操作权限。
+
+ldap工作的进程叫slapd
+LDIF 数据交换格式 ，是ldap数据库的信息专用的一种文件格式，每行都要属性和值
+
+TLS和SASL （ldap的认证）
+默认的ldap是用明文传输的。使用TLS为传输加密。
+SASL简单身份认证安全框架，这是一种工业标准，有kerberos v5、login、plain等等。kerberos是最复杂的一种。
+
+RHEL6配置LDAP
+[root@DNS ~]# cd /etc/openldap/slapd.d/
+删除这个目录下默认的配置
+[root@DNS openldap]# mv slapd.d/ slapd.d.bak
+重命名，防止启动时调用里面的配置文件
+[root@DNS openldap]# cp /usr/share/openldap-servers/slapd.conf.obsolete slapd.conf
+默认的配置文件不存在，拷贝模板
+[root@DNS openldap]# vim slapd.conf 
+改变下面几行内容
+114 database        bdb
+115 suffix          "dc=example,dc=com"
+116 checkpoint      1024 15
+117 rootdn          "cn=admin,dc=example,dc=com"
+设置密码，记录hash后的结果
+[root@DNS openldap]# slappasswd 
+New password: 
+Re-enter new password: 
+{SSHA}jZ4K/d/jLeEwBBJtZhwiwPm+j9KR8VHn
+将生成的hash密码加入配置文件
+123 rootpw       {SSHA}jZ4K/d/jLeEwBBJtZhwiwPm+j9KR8VHn
+修改访问控制，添加dn
+105 database monitor
+106 access to *
+107         by dn.exact="cn=admin,dc=example,dc=com" read
+108         by * none
+
+[root@DNS openldap]# slaptest -u -f slapd.conf 
+测试文件
+拷贝数据库的属性配置模板
+[root@DNS ldap]# cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/ 
+修改所有者和文件名
+[root@DNS ldap]# chown ldap:ldap DB_CONFIG.example 
+[root@DNS ldap]# mv DB_CONFIG.example DB_CONFIG
+[root@DNS ~]# service slapd restart   服务启动
+[root@DNS ~]# ldapsearch -x -b "dc=example,dc=com"
+检索域，-x是排序，-b是指定dn
+
+[root@DNS ~]# mkdir /netdir  创建一个用于网络用户登录的目录
 
 
 
@@ -2533,7 +2681,166 @@ yum install php-fpm
 
 
 
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 
 
 
