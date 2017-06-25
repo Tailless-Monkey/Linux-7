@@ -2842,6 +2842,29 @@ http://www.ldap.org.cn   学习站点
 ldapamin   了解ldap的条目类型等
 
 2017/06/25  samba服务器
+samba被称为一个伟大的创造。它能够实在在类unix和win之间的共享，弥补了nfs的不足。samba支持建立域以及加入域。可以模拟称为ad域中的DC。
+[root@centos7 /]# yum install samba 
+安装
+
+samba服务器的daemons由nmbd和smbd来提供。其中nmbd是为比较古老的协议提供服务支持的，现在已经很少使用。
+[root@centos7 /]# firewall-cmd --add-service=samba --permanent   防火墙放行
+设置最简单的共享
+ 37 [MOVIE]
+ 38         comment = This is a test share directory
+ 39         path = /share
+ 40         writable = no
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
