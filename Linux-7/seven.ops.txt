@@ -2644,6 +2644,175 @@ Re-enter new password:
 [root@DNS ~]# mkdir /netdir  创建一个用于网络用户登录的目录
 
 
+默认情况下ldap是无法识别/etc/passwd或者其他类型的文本内容的，只能读取ldif格式，所以我们需要对当前的格式进行转换。
+[root@DNS ~]# yum install migrationtools 
+安装ldap用户迁移工具，可以对普通格式进行ldif格式的转换。它提供了很多脚本供我们使用。
+[root@DNS ~]# cd /usr/share/migrationtools/
+脚本目录
+[root@DNS migrationtools]# vim migrate_common.ph 
+这个文件是所有脚本的配置变量的文件
+ 70 # Default DNS domain
+ 71 $DEFAULT_MAIL_DOMAIN = "example.com";
+ 72 
+ 73 # Default base 
+ 74 $DEFAULT_BASE = "dc=example,dc=com";
+[root@DNS migrationtools]# ./migrate_base.pl > /tmp/base.ldif   执行脚本生成一个基础的ldif文件
+[root@DNS migrationtools]# ./migrate_passwd.pl /etc/passwd > /tmp/passwd.ldif
+通过脚本将passwd文件转换为ldif格式，能够识别passwd和shadow
+[root@DNS migrationtools]# ./migrate_group.pl /etc/group > /tmp/group.ldif 
+生成一个基于组的ldif格式文件
+
+导入ldif文件到ldap数据库
+[root@DNS tmp]# ldapadd -x -D "cn=admin,dc=example,dc=com" -W -f group.ldif 
+[root@DNS tmp]# ldapadd -x -D "cn=admin,dc=example,dc=com" -W -f passwd.ldif 
+[root@DNS tmp]# ldapadd -x -D "cn=admin,dc=example,dc=com" -W -f base.ldif 
+
+rhel6的客户端通过setup工具选择使用ldap
+
+基于nfs的ldap（用户漫游）
+1、在ldap服务器上配置nfs共享
+2、客户端实现自动挂载
+[root@centos6 ~]# cp /etc/auto.misc /etc/auto.ldapdir
+在auto.ldapdir中配置自动挂载
+/netdir/ldapuser4    -fstype=nfs.rw  192.168.24.34:/netdir/ldapuser4
+[root@centos6 ~]# service autofs restart  重启自动挂载
+注：/netdir/*    -fstype=nfs,rw  192.168.24.34:/netdir/&    
+这里的*表示netdir的任意目录，最后的&就是引用前面的*
+或者说前面的*是什么，那么后面的&就是什么
+
+RHEL7中LDAP服务
+[root@centos7 ~]# yum install openldap-servers openldap-clients -y
+安装openldap
+
+[root@centos7 ~]# cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+拷贝数据库的模板
+
+[root@centos7 ldap]# chown ldap:ldap DB_CONFIG 
+修改所有者和所属组
+
+设置slapd服务的启动和自启动
+
+如果selinux开启，需要布尔值放行ldap认证等服务
+[root@centos7 ~]# setsebool -P authlogin_nsswitch_use_ldap=0
+
+[root@centos7 ~]# slappasswd   生成ldap密码，记录用于后面的配置
+{SSHA}gILpY3hR50691dMy/QyTfasy3eEKehpq
+
+[root@centos7 ~]# vim chrootpw.ldif   
+生成一个ldif的配置文件，这个文件用来记录管理员的信息
+  1 dn:olcDatabase={0}config,cn=config
+  2 changetype:modify
+  3 add:olcRootPW
+  4 olcRootPW:{SSHA}gILpY3hR50691dMy/QyTfasy3eEKehpq
+
+[root@centos7 ~]# ldapadd -Y EXTERNAL -H ldapi:/// -f chrootpw.ldif 
+参数-Y表示使用SASL机制进行外部认证，-H定义ldap服务器的url。-f是指定引用的ldif文件
+
+[root@centos7 ~]# vim chdomain.ldif 
+生成配置文件
+  1 dn:olcDatabase={1}monitor,cn=config
+  2 changetype:modify
+  3 replace:olcAccess
+  4 olcAccess:{0}to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" read by dn.base="cn=admin,dc=example,dc=com" read b
+    y * none
+  5 
+  6 dn:olcDatabase={2}hdb,cn=config
+  7 changetype:modify
+  8 replace:olcSuffix
+  9 olcSuffix:dc=example,dc=com
+ 10 
+ 11 dn:olcDatabase={2}hdb,cn=config
+ 12 changetype:modify
+ 13 replace:olcRootDN
+ 14 olcRootDN:cn=admin,dc=example,dc=com
+ 15 
+ 16 dn:olcDatabase={2}hdb,cn=config
+ 17 changetype:modify
+ 18 add:olcRootPW
+ 19 olcRootPW:{SSHA}gILpY3hR50691dMy/QyTfasy3eEKehpq
+ 20 
+ 21 dn:olcDatabase={2}hdb,cn=config
+ 22 changetype:modify
+ 23 add:olcAccess
+ 24 olcAccess:{0}to attrs=userPassword,shadowLastChange by dn="cn=admin,dc=example,dc=com" write by anonymous auth by self write by * none
+ 25 olcAccess:{1}to dn.base="" by * read
+ 26 olcAccess:{2}to * by dn="cn=admin,dc=example,dc=com" write by * read
+
+[root@centos7 ~]# ldapmodify -Y EXTERNAL -H ldapi:/// -f chdomain.ldif 导入数据库
+
+[root@centos7 ~]# vim basedomain.ldif 
+  1 dn:dc=example,dc=com
+  2 objectClass:top
+  3 objectClass:dcObject
+  4 objectClass:organization
+  5 o:example com
+  6 dc:example
+  7 
+  1 dn:dc=exmaple,dc=com
+  2 objectClass:top
+  3 objectClass:dcObject
+  4 objectClass:organization
+  5 o:example com
+  6 dc:example
+  7 
+  8 dn:cn=admin,dc=example,dc=com
+  9 objectClass:organizationalRole
+ 10 cn:admin                  
+ 11 description:Directory Manager
+ 12            
+ 13 dn:ou=People,dc=example,dc=com
+ 14 objectClass:organizationalUnit
+ 15 ou:People  
+[root@centos7 ~]# ldapadd -x -D cn=admin,dc=example,dc=com -W -f basedomain.ldif 
+导入数据库
+
+创建用户信息文件
+[root@centos7 ~]# vim ldapuser.ldif
+  1 dn:uid=ldapuser,ou=People,dc=example,dc=com
+  2 objectClass:inetOrgPerson
+  3 objectClass:posixAccount
+  4 objectClass:shadowAccount
+  5 cn:ldapuser
+  6 sn:Linux
+  7 userPassword:{SSHA}gILpY3hR50691dMy/QyTfasy3eEKehpq
+  8 loginShell:/bin/bash
+  9 uidNumber:2000                       
+ 10 gidNumber:2000
+ 11 homeDirectory:/home/ldapuser
+ 12 
+ 13 dn:cn=ldapuser,ou=Group,dc=example,dc=com
+ 14 objectClass:posixGroup
+ 15 cn:ldapuser
+ 16 gidNumber:2000
+ 17 memberUid:ldapuser
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

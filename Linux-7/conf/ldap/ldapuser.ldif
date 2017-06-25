@@ -1,0 +1,17 @@
+dn:uid=ldapuser,ou=People,dc=example,dc=com
+objectClass:inetOrgPerson
+objectClass:posixAccount
+objectClass:shadowAccount
+cn:ldapuser
+sn:Linux
+userPassword:{SSHA}gILpY3hR50691dMy/QyTfasy3eEKehpq
+loginShell:/bin/bash
+uidNumber:2000
+gidNumber:2000
+homeDirectory:/home/ldapuser
+
+dn:cn=ldapuser,ou=Group,dc=example,dc=com
+objectClass:posixGroup
+cn:ldapuser
+gidNumber:2000
+memberUid:ldapuser

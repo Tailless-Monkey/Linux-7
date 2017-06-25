@@ -1,0 +1,19 @@
+dn:dc=example,dc=com
+objectClass:top
+objectClass:dcObject
+objectClass:organization
+o:example.com
+dc:example
+
+dn:cn=admin,dc=example,dc=com
+objectClass:organizationalRole
+cn:admin
+description:Directory Manager
+
+dn:ou=People,dc=example,dc=com
+objectClass:organizationalUnit
+ou:People
+
+dn:ou=Group,dc=example,dc=com
+objectClass:organizationalUnit
+ou:Group
