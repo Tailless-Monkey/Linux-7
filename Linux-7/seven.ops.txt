@@ -2786,15 +2786,62 @@ RHEL7中LDAP服务
  16 gidNumber:2000
  17 memberUid:ldapuser
 
+客户端认证
+[root@rhel7 ~]# authconfig-tui   使用图形化工具认证
+[root@rhel7 ~]# authconfig-gtk   针对tls的ldap认证
+通过命令行执行认证，更适合脚本化操作 
+[root@rhel7 ~]# authconfig --enableldap \ 
+> --enableldapauth \
+> --ldapserver=ldap.example.com  \
+> --ldapbasedn="dc=example,dc=com"  \
+> --enablemkhomedir  \
+> --update 
 
+LDAP over TLS
+证书   认证
+自生成的证书是不被认证的，在浏览器上是会被拒绝的。
+大部分证书都是收费的，当然也有一些免费的证书，沃通就提供免费证书使用。比较有名的证书单位Verisign(威瑞信)，赛门铁克（Symantec）。
+509x规范是证书国际标准，证书通常包含二种编码，一种叫pem（文本格式，可读），一种叫der（二进制格式，不可读）。
+x509标准
+1、生成密钥
+生成的密钥都是key
+[root@centos7 ~]# cd /etc/pki/tls/certs/
+[root@centos7 certs]# make ldap.key
 
+2、生成证书请求文件
+后缀是csr都是证书请求文件，通过你的密钥向上级的证书颁发机构获取证书（你的公钥加上你的信息）
+[root@centos7 certs]# make ldap.csr 
+填写信息，在生产环境中应该注册合法的证书，所以填写的信息肯定是真实的
 
+3、生成证书
+证书文件后缀有可能是pem，默认都是crt
+[root@centos7 certs]# openssl x509 -in ldap.csr -out ldap.crt -req -signkey ldap.key -days 3650
 
+[root@centos7 certs]# cp -ap ldap.* /etc/openldap/certs/   复制所有文件到openldap目录
 
+[root@centos7 certs]# chown ldap:ldap ldap.*
+变更证书等文件为ldap
 
+[root@centos7 ~]# vim mod_ssl.ldif   编辑数据文件，主要是指明密钥和证书的路径
 
+[root@centos7 ~]# ldapmodify -Y EXTERNAL -H ldapi:/// -f mod_ssl.ldif 
+将编辑的文件导入ldap
 
+[root@centos7 ~]# vim /etc/sysconfig/slapd 
+  9 SLAPD_URLS="ldapi:/// ldap:/// ldaps:///"
+[root@centos7 ~]# systemctl restart slapd
 
+[root@centos7 html]# cp /etc/openldap/certs/ldap.crt .
+拷贝证书放到http服务器的主目录下
+
+[root@rhel7 ~]# echo "TLS_REQCERT allow" >> /etc/openldap/ldap.conf
+
+[root@rhel7 ~]# echo "tls_reqcert allow" >> /etc/nslcd.conf 
+
+http://www.ldap.org.cn   学习站点
+ldapamin   了解ldap的条目类型等
+
+2017/06/25  samba服务器
 
 
 
