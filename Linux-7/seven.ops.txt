@@ -2848,11 +2848,118 @@ samba被称为一个伟大的创造。它能够实在在类unix和win之间的共享，弥补了nfs的不足。s
 
 samba服务器的daemons由nmbd和smbd来提供。其中nmbd是为比较古老的协议提供服务支持的，现在已经很少使用。
 [root@centos7 /]# firewall-cmd --add-service=samba --permanent   防火墙放行
-设置最简单的共享
+设置最简单的共享，允许匿名访问。
+     security = share
  37 [MOVIE]
  38         comment = This is a test share directory
- 39         path = /share
- 40         writable = no
+ 39         path = /share   
+ 40         writable = yes
+ 41         public = yes
+注：启动服务时会失败。这种方式只能在samba4.0版本以前使用。在4.0版本中增加了安全属性，不支持匿名登录。必须通过map to guest来实现
+  7         workgroup = WORKGROUP
+  8         security = user 
+  9         map to guest = Bad User
+ 10         passdb backend = tdbsam
+默认仍然无法写入，因为目录自身不具备其他用户可写的权限
+[root@centos7 samba]# chmod o+w /share/
+如果selinux开启，需要修改新建共享目录的上下文
+[root@centos7 share]# chcon -t samba_share_t /share/
+如果希望永久生效，使用semanage工具修改
+[root@centos7 ~]# yum install policycoreutils-python-2.5-9.el7.x86_64 
+[MOVIE]
+	comment = This is a test share directory
+	path = /share
+	writable = yes 
+#禁止匿名访问这个目录
+	public = no 
+#禁止显示共享目录
+	browseable = no
+
+根据不同的用户登录显示不同的内容
+重点是配置文件中的这个条目，可以手动添加
+ config  file = /etc/samba/smb.conf.%U
+[root@centos7 samba]# cp smb.conf smb.conf.tom 
+[root@centos7 samba]# cp smb.conf smb.conf.jarry
+linux 下客户端的验证
+[root@DNS ~]# smbclient -L //samba.example.com -U jarry
+
+[root@centos7 samba]# testparm   用来测试smb.conf的配置文件语法
+
+
+FTP服务器 
+ftp协议非常古老，设计之初没有考虑安全性，都是明文传输。rhel中使用的ftp工具叫vsftpd（very secrue ftp daemons ），特点就是安全。
+ftp是用来实现文件传输的。场景1：企业有数据共享给所有的员工，可以架设ftp服务器。
+场景2：idc一般提供的网站服务，客户端都需要通过ftp去上传和下载自己的网站数据。
+场景3：更新设备固件时会使用这种方式。
+
+FTP不支持UDP。
+[root@centos7 ~]# yum install vsftpd -y
+安装vsftpd
+
+[root@centos7 ~]# ss -ntulp |grep vsftpd
+查看vsftpd启动后监听的端口，是tcp的21.
+实际上，它监听2个端口，一个tcp的21，还有一个是tcp的20。
+默认情况下我们看不到20端口，那是因为这个端口是在客户端和服务器端的连接建立之后才产生的。21端口是用来传递信令的，20端口是用来传输数据的。
+
+FTP的两种工作方式：
+主动模式（POST）和被动模式（PASV）
+主动模式：  
+客户端发起N端口-->服务器的21端口
+服务器的20端口-->客户端的N+1端口
+这个模式的弊端是服务器在连接客户端的过程中，如果遇到防火墙，很难通过。
+
+被动模式：
+客户端发起N端口-->服务器的21端口
+客户端的N+1端口-->服务器的P端口(随机高端口)
+这种模式就解决了主动模式下客户端的防火墙可能引起的问题，但对于服务器端的防火墙也需要进行额外的设置
+
+不论哪种模式，选择权都在客户端。winxp默认使用的就是主动模式。通常优先选择都是被动模式。
+
+[root@centos7 ~]# systemctl enable vsftpd
+[root@centos7 ~]# vim /etc/vsftpd/vsftpd.conf 
+
+默认情况下vsftpd 的主目录是/var/ftp/pub
+注：selinux开启的情况下，需要把下面的布尔值都打开才可以实现匿名写入，同时还要保证写入的目录有相应的权限
+ftpd_anon_write --> off
+ftpd_full_access --> off
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
