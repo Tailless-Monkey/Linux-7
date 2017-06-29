@@ -2923,6 +2923,50 @@ FTP的两种工作方式：
 ftpd_anon_write --> off
 ftpd_full_access --> off
 
+2017/06/28 openvpn
+openvpn是一个基于openssl库来实现的vpn开源工具。和pptp等vpn相比，它的特点安全。它也是我们在生产环境中所有最多vpn方案。
+工作原理：产生一块抽象的虚拟网卡，当需要交流时，数据包或者数据帧发送给虚拟网卡，虚拟网卡对数据按照事先双方协商的加密或者hmac等算法进行处理，从物理网卡发出。
+
+[root@RB ~]# yum install openssl openssl-devel -y
+openssl是用来实现openvpn加密的，需要安装。
+heartbleed漏洞，检查一下openssl是否有这个漏洞
+[root@RB ~]# openssl version  检查版本
+[root@RB ~]# yum install lzo
+lzo工具用来实现快速的压缩和解压缩，它提供的是一种加速的无损解压缩算法，可以在openvpn数据传输过程中提升性能
+[root@RB ~]# yum install openvpn easy-rsa
+通过安装epel源安装openvpn和easy-rsa（提供rsa的算法）
+
+1、生成openvpn的证书密钥
+[root@RB ~]# vim /usr/share/easy-rsa/2.0/vars 
+设置环境变量
+[root@RB ~]# cd /usr/share/easy-rsa/2.0/
+[root@RB 2.0]# ./build-ca   生成证书
+[root@RB 2.0]# ./build-key-server server
+为服务器生成证书还有请求文件和私钥文件。server是服务器默认的名字，如果设置了其他名称，最后必须将证书和密钥修改为统一的名称。
+[root@RB 2.0]# ./build-key client   生成客户端的证书、证书请求文件以及私钥，如果在生产环境中就需要为每个客户生产各自的文件
+[root@RB 2.0]# ./build-dh  使用dh算法实现密钥交换，主要是为了增强openvpn传输的安全性
+[root@RB keys]# openvpn --genkey --secret keys/ta.key
+可以在生产环境中阻止ddos等恶意攻击的密钥
+[root@RB sample-config-files]# pwd
+/usr/share/doc/openvpn-2.4.3/sample/sample-config-files
+[root@RB sample-config-files]# cp server.conf  /etc/openvpn/
+拷贝openvpn的配置模板到配置目录下
+
+[root@RB 2.0]# iptables -I FORWARD  -p all --dest 192.168.24.0/24 -j ACCEPT
+
+[root@RB 2.0]# iptables -I INPUT   -p tcp --dport 1194 -j ACCEPT
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3200,7 +3244,7 @@ ftpd_full_access --> off
 
 
 
- 
+  
 
 
 
