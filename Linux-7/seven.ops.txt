@@ -2957,6 +2957,419 @@ lzo工具用来实现快速的压缩和解压缩，它提供的是一种加速的无损解压缩算法，可以在ope
 [root@RB 2.0]# iptables -I INPUT   -p tcp --dport 1194 -j ACCEPT
 
 
+2017/06/29  SVN
+SVN 是 subversion  的简称，是一个开源的版本控制的系统。相较于rcs、cvs等其他的版本控制系统，提供了更强大的功能，支持更多的特性。
+
+常见的版本控制软件：cvs svn github
+svn能够很好的识别到冲突，并处理
+支持并行开发（分支的合并）
+支持本地离线操作
+场景：主要部署在企业内部，作为git的替代。敏感代码存储在svn上，其他的可以根据需要存放到git上。
+
+svn部署的两种方式：
+作为服务器单独运行（C/S架构）  3690
+作为服务器结合一些模块（http） 借助于apache运行   80
+[root@DNS ~]# yum install subversion -y  安装
+[root@DNS ~]# yum install httpd\* -y  
+[root@DNS ~]# yum install mod_dav_svn -y   如果需要使用http访问svn，需要安装这个模块连接svn和apache
+[root@DNS ~]# useradd  svn 
+建立一个专门用来管理仓库的用户
+[root@DNS ~]# mkdir /var/repos  建立一个仓库目录
+[root@DNS ~]# chown svn.svn /var/repos/
+[root@DNS ~]# svnadmin create /var/repos/svn1
+使用svn工具创建版本仓库
+[root@DNS conf]# ls   成功后会在仓库目录中生成svn的元数据文件
+authz 权限和认证
+passwd   用户和密码 
+svnserve.conf   服务器的配置
+[root@DNS conf]# svnserve -d -r /var/repos/ 
+svn的启动必须通过管理库的目录来执行，参数-d表示svn的daemons会在后台执行，-r指定了仓库的根目录
+[root@DNS conf]# vim /etc/rc.local   设置svn服务开机自动运行，添加如下指令到rc.local
+/usr/bin/svnserver -d -r /var/repos/
+
+[root@DNS ~]# svn import figlet/ file:///var/repos/svn1 -m 'svn1 version1'
+将一个软件包figlet提交到本地的仓库svn1下，并添加注释信息。
+注：我们默认使用的是fsfs存储方式（基本上取代了bdb这种数据库存储的方式）。当文件被上传后，会以一堆数字来表示，都被压缩成了二进制文件。fsfs格式是以增量的方式来记录和存放数据的。svn先把0压缩成一个文件，然后每次版本更新时就对变化的部分进行压缩，生成一个新的数字文件，每次都是增加一个增量包，这个包中包含的就是这次提交所有的commit的数据。
+[root@DNS ~]# svn checkout file:///var/repos/svn1/ 
+将代码下载到本地
+
+注：实际的生产环境中更多是使用http结合svn的方式
+[root@DNS ~]# rpm -ql mod_dav_svn   查看模块安装后生成的文件
+/etc/httpd/conf.d/subversion.conf  配置文件
+/usr/lib64/httpd/modules/mod_authz_svn.so   认证模块
+/usr/lib64/httpd/modules/mod_dav_svn.so  连接httpd模块
+配置apache支持svn
+[root@DNS ~]# vim /etc/httpd/conf/httpd.conf
+#修改默认的httpd的用户和组都为svn
+ 250 User svn
+ 251 Group svn
+[root@DNS html]# vim /etc/httpd/conf.d/subversion.conf 
+配置svn结合apahce的配置文件
+<Location /svn>
+   DAV svn
+   SVNParentPath /var/repos
+      AuthType Basic    要求提供基本认证
+      AuthName "Authorization REPOS"    弹窗的信息
+      AuthUserFile /home/svn/passwd   用户的密码文件路径
+      AuthzSVNAccessFile /home/svn/authz   权限文件
+      Require valid-user    需要有效用户才能认证
+</Location>
+
+[root@DNS ~]# htpasswd -cm /home/svn/passwd tom  创建一个本地访问控制文件，后面通过http访问svn时，使用证号密码。账号密码就来自于这个文件
+[root@DNS ~]# vim /home/svn/authz   配置认证文件
+[/]        仓库根目录权限
+tom = rw
+[svn1:/]     针对svn1仓库的根目录
+@group = rw   针对group这个组
+jarry = rw
+[svn2:/]
+@admin = rw
+jarry = r
+[groups]
+group = tom,jarry
+admin = tom
+
+2017/06/30  ISCSI
+[root@centos7 ~]# yum install target\* -y
+安装target，这个是iscsi的服务端工具
+[root@centos7 ~]#  targetcli  通过工具交互式配置iscsi目标
+1、在blockstore中创建一个iscis的物理设备
+/backstores/block> create iscsi.disk1 /dev/sdb1
+/backstores/fileio> create iscsi.disk2 /iscsi/fileio 
+
+2、指定iscsi的目标名称
+/iscsi> create iqn.2017-06.com.example:iscsi.disk
+
+3、指定目标的acls
+/iscsi/iqn.20...isk/tpg1/acls> create iqn.2017-06.com.example:iscsi.disk-201707020915
+
+4、将目标设备和iscsi的名称映射
+/iscsi/iqn.20...isk/tpg1/luns> create /backstores/block/iscsi.disk1     映射磁盘
+/iscsi/iqn.20...isk/tpg1/luns> create /backstores/fileio/iscsi.disk2    映射了文件io
+
+5、指定监听的设备地址和端口
+/iscsi/iqn.20.../tpg1/portals> delete 0.0.0.0 3260
+删除默认的监听所有，不删除，后面创建会冲突
+/iscsi/iqn.20.../tpg1/portals> create 192.168.24.4
+
+[root@centos7 ~]# systemctl restart target
+[root@centos7 ~]# systemctl enable target
+[root@centos7 ~]# firewall-cmd --add-port=3260/tcp
+success
+[root@centos7 ~]# firewall-cmd --add-port=3260/tcp --permanent
+
+[root@DNS ~]# vim /etc/iscsi/initiatorname.iscsi 
+客户端直接在这个文件中记录服务器的iscsi的acls名称，就可以登录
+
+2017/07/02  POSTFIX  DOVECOT
+
+企业邮箱可以提升企业的形象，加强企业内部的邮件往来安全和隐私性等。但是如果使用的是由服务商提供的企业邮箱，费用一般都较为高昂。
+腾讯邮箱   750元一年  5个用户
+root@unix.cn.com --- mx --腾讯的邮箱 
+rhel6以前默认使用的都是sendmail作为电子邮箱的daemons，sendmail设计的比较早，在运行时都是使用的root身份，安全隐患很大。
+POSTFIX是6以后红帽默认使用的邮件工具，理论上不需要安装。它是IBM开发的开源工具。postfix除了对sendmail有很好的兼容性以外，在安全性和自身的性能上都是远远好于sendmail的。
+
+客户端  ---  本地邮局   ---  其他邮局  ---  接收方
+需要通过DNS对email的域名做解析。查找的MX记录
+电子邮件格式：username@domainname.com
+
+邮箱技术术语：
+MUA  邮件用户代理    foxmail或者闪电邮或者outlook
+邮件的收发是使用不同的协议来完成的。
+
+发送邮件协议smtp（简单邮件传输协议），它控制了信件从源到目的的发送或者中转  smtp使用tcp协议，端口是25
+
+接收邮件协议POP3（邮政办公协议第三版post office protocol）、IMAP（网络邮件访问协议）
+pop3规定了个人计算机如何连接到互联网上的邮件服务器进行邮件接收。端口是110
+IMAP也是用来获取邮件接收的，使用tcp协议，端口是143。它和pop3的区别是不需要把邮件下载到本地就可以直接操作。其实就是可以通过MUA软件对服务器上的邮件直接进行处理。
+
+邮件投递MDA
+邮件代理接收 MRA
+邮件中转 relay
+邮件传输代理 MTA    POSTFIX exchange（微软）
+ 
+rhel7中邮件服务器的配置
+[root@centos7 ~]# yum install postfix   默认不需要安装
+[root@centos7 ~]# systemctl enable postfix  开机启动
+[root@centos7 ~]# cd /etc/postfix/  配置目录
+postfix是模块化设计的。sendmail只有一个daemons，而postfix会把所有的工作分配给不同的daemons去完成。master.cf是协调各个模块工作的。main.cf是主要的配置文件
+
+[root@centos7 postfix]# ss -ntulp |grep :25 
+默认情况下只针对自己进行监听
+[root@centos7 ~]# vim /etc/postfix/main.cf
+113 inet_interfaces = all   
+
+1、修改邮件服务器的名称
+[root@centos7 ~]# hostname  修改主机名称
+mail.example.com
+[root@centos7 ~]# vim /etc/postfix/main.cf
+77 myhostname = mail.example.com
+
+2、修改邮局的域名
+84 mydomain = example.com
+
+3、修改寄出邮件的域
+99 myorigin = $mydomain
+
+4、指定收信人的邮件格式
+164 #mydestination = $myhostname, localhost.$mydomain, localhost  如果是这种格式，邮件地址可以是root@mail.example.com，这种格式用户是接收不到的。
+165 mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+
+postfix中的队列由专门的模块qmgr实现。它是整个postfix 的核心。队列的管理设置输入、活动、等待、故障、保留，每个队列都会在/var/spool/postfix下生成一个目录，里面就是各自队列的文件。比如如果邮件发送失败，那么在故障目录中就会生成一个队列文件，我们通过postqueue可以查看队列。
+[root@centos7 postfix]#yum install mailx 安装一个mua工具
+[root@centos7 postfix]# echo xxxx | mail -s "test" xx@x.example.com  模拟发送一个不存在的邮局
+[root@centos7 postfix]# postqueue -p  查看队列
+[root@centos7 postfix]# postsuper -d 5EC61409DB86  删除队列
+
+邮件接收由dovecot完成。这个是linux里面使用的用来接收邮件的开源工具，它的特点是配置简单，功能强大，效果高，性能好，不占用过多资源。
+[root@centos7 postfix]# yum install dovecot -y
+安装dovecot邮件接收
+[root@centos7 ~]# vim /etc/dovecot/dovecot.conf 
+ 24 protocols = imap pop3 lmtp    选择支持所有的邮局接收协议
+另外在目录/etc/dovecot/conf.d/10-auth.conf和10-mail.conf中修改配置
+
+设置防火墙：
+25 smtp协议使用  发送邮件
+109  pop2协议使用  接收邮件（这个协议版本目前已经不使用）
+110  pop3协议使用   接收邮件
+143  IAMP协议使用   接收邮件
+465端口  smtps （smtp over tls）
+995端口  pop3s
+993端口  iamps
+
+[root@centos7 ~]# yum install postgrey 
+这个是第三方的邮件过滤
+
+2017/07/02  服务器的虚拟化技术
+服务器虚拟化
+桌面虚拟化  cirtix（思杰）  vmware 
+应用虚拟化  vmware
+存储虚拟化  vsan   vmware
+网络虚拟化  SDN
+数据中心虚拟化  
+
+常用的虚拟化软件：
+vmware workstations
+xen
+virtual box
+vpc
+kvm
+
+全虚拟化
+半虚拟化   ring3  ring0     xen  kvm
+基于硬件的全虚拟化
+
+随着计算机性能的大幅度提升，实际的应用中cpu的利用率使用并不高，对于企业而言，这就是资源的浪费。服务器的虚拟化是目前企业或者其他机构中一定会考虑的实施部署方案。
+
+服务器虚拟化中一般都会结合一系列的管理功能，比如HA（高可用）、LB（负载均衡）、DRS
+使用率比较高的服务器虚拟化方案有：
+vmware vsphere   （vmware）  商用版本  简单 功能齐全 
+rhev  （红帽）  kvm    开源的方案
+hyper-v （微软）
+cirtix   （思杰）  xen
+
+kvm  kernel-base virtual machine（基于内核的虚拟机）
+
+cpu的指令有4个级别：ring0 ring1 ring2 ring3
+
+ring0的级别最高，通常都是执行内核空间指令。ring3的级别最低，通常都是执行用户空间的指令。ring0指令通常都是控制中断、修改页表、访问硬件设备等，叫特权指令。应用程序所使用的指令都是由ring3来执行了。如果某个程序需要将数据存储到磁盘中，这时指令会从ring3到ring0进行转换和变化。
+
+用户空间的指令不能执行内核空间的指令，也就代表着如果vmware workstations中的虚拟机要发出一个关机的指令，意味着要中断系统硬件的运行，这个是特权指令。为了解决这个问题，vmware在1998年开发了一个技术叫BT（二进制特权转换）。
+
+通过BT实现的虚拟化我们叫半虚拟化，如果要实现半虚拟化，就需要修改系统的内核来实现指令翻译。对此，windows是不可能实现的，也就是说半虚拟化只针对开源的操作系统。
+半虚拟化软件：xen  在2012年左右已经开源，现在应该属于cirtix公司。
+性能非常好，接近裸机，但是只能用于linux系统
+
+intel公司推出了cpu的虚拟化，直接通过硬件实现了虚拟化功能。基于硬件的全虚拟化开始流行，性能是最好的。
+
+目前  腾讯做的是kvm
+      淘宝也在部署kvm
+	  百度云部署xen
+	  淘宝也有许多xen
+
+kvm需要搭载qemu来实现管理，现在也有使用libvirt（virsh）来实现
+[root@DNS ~]# yum insatll "虚拟化*" -y
+[root@DNS ~]# service libvirtd restart 启动kvm的管理daemons
+
+kvm快照：
+virsh # snapshot-create CentOS6
+kvm的快照不支持默认的磁盘格式RAW。
+[root@DNS ~]# qemu-img info /var/lib/libvirt/images/CentOS6.img 
+
+虚拟机支持的磁盘格式有vmdk（vmware）、vdi（virtualbox）、RAW（kvm）、cow和qcow2（可以快照）
+qcow2格式性能不如raw，但是功能比较多，支持压缩、快照、加密等等。
+[root@DNS ~]# qemu-img convert -f raw -O qcow2 /var/lib/libvirt/images/CentOS6.img /var/lib/libvirt/images/CentOS6.qcow2
+将当前磁盘类型转换为qcow2类型
+
+建议：在虚拟化前就创建虚拟磁盘
+[root@mail ~]# qemu-img create -f qcow2 c6.qcow2 8G
+
+通过命令行安装
+virt-install -n centos6 -r 512 -f /var/lib/libvirt/images/CentOS6.img -b br0 -l /dev/cdrom -x "console=tty0 console=ttyS0 115200ng" --nographics 
+
+docker(容器)
+lxc  namespace cgroup  chroot  
+用户空间     进程隔离
+资源组管理   资源隔离
+chroot       用户隔离
+注：docker实现的隔离还是有限的，从实际情况上来看，肯定么有虚拟化来的彻底
+在同一台服务器上的所有的容器共用底层的内核（linux）
+
+和虚拟机相比：启动毫秒级别，安全性上不如虚拟机。
+
+[root@mail ~]# yum install docker-io -y
+docker仓库
+docker镜像
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
