@@ -72,9 +72,9 @@ mail_owner = postfix
 # from gethostname(). $myhostname is used as a default value for many
 # other configuration parameters.
 #
-#myhostname = host.domain.tld
-#myhostname = virtual.domain.tld
 myhostname = mail.example.com
+#myhostname = virtual.domain.tld
+
 # The mydomain parameter specifies the local internet domain name.
 # The default is to use $myhostname minus the first component.
 # $mydomain is used as a default value for many other configuration
@@ -113,7 +113,7 @@ myorigin = $mydomain
 inet_interfaces = all
 #inet_interfaces = $myhostname
 #inet_interfaces = $myhostname, localhost
-#inet_interfaces = localhost
+inet_interfaces = localhost
 
 # Enable IPv4, and IPv6 if supported
 inet_protocols = all
@@ -161,8 +161,8 @@ inet_protocols = all
 #
 # See also below, section "REJECTING MAIL FOR UNKNOWN LOCAL USERS".
 #
-#mydestination = $myhostname, localhost.$mydomain, localhost
 mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+#mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
 #mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain,
 #	mail.$mydomain, www.$mydomain, ftp.$mydomain
 
@@ -245,12 +245,11 @@ unknown_local_recipient_reject_code = 550
 #  
 # Specify "mynetworks_style = host" when Postfix should "trust"
 # only the local machine.
-#指定在哪些情况下服务器允许转发。class是表示ip的类别。subnet表示子网类别，host表示只对主机转发 
+# 
 #mynetworks_style = class
 #mynetworks_style = subnet
 #mynetworks_style = host
-#下面的内容表示只针对24.0网段转发,hash里面定义的文件指明了邮件的用户名，可以针对用户转发邮件。
-#mynetworks = 192.168.24.0/24,hash:/etc/postfix/access
+
 # Alternatively, you can specify the mynetworks list by hand, in
 # which case Postfix ignores the mynetworks_style setting.
 #
@@ -262,7 +261,7 @@ unknown_local_recipient_reject_code = 550
 # of listing the patterns here. Specify type:table for table-based lookups
 # (the value on the table right-hand side is not used).
 #
-#mynetworks = 168.100.189.0/28, 127.0.0.0/8
+mynetworks = 192.168.24.0/2, 127.0.0.0/8
 #mynetworks = $config_directory/mynetworks
 #mynetworks = hash:/etc/postfix/network_table
 
@@ -293,7 +292,7 @@ unknown_local_recipient_reject_code = 550
 # NOTE: Postfix will not automatically forward mail for domains that
 # list this system as their primary or backup MX host. See the
 # permit_mx_backup restriction description in postconf(5).
-#指定转发的域
+#
 #relay_domains = $mydestination
 
 # INTERNET OR INTRANET
@@ -310,7 +309,7 @@ unknown_local_recipient_reject_code = 550
 # [address] or [address]:port; the form [host] turns off MX lookups.
 #
 # If you're connected via UUCP, see also the default_transport parameter.
-#指定转发的网关，一般大型的邮局网络中才会这么做
+#
 #relayhost = $mydomain
 #relayhost = [gateway.my.domain]
 #relayhost = [mailserver.isp.tld]
@@ -382,7 +381,7 @@ unknown_local_recipient_reject_code = 550
 #
 # It will take a minute or so before changes become visible.  Use
 # "postfix reload" to eliminate the delay.
-#为邮箱设置别名，默认系统中的所有系统用户的邮局都是别名给root用户接收的。在aliases文件中冒号左边的是别名，右边的是真名。理论上当我们为用户设置了别名，需要把alisaes里面的设置导入到postfix让它生效。最简单的方法就是直接使用newalias命令更新数据库。
+#
 #alias_maps = dbm:/etc/aliases
 alias_maps = hash:/etc/aliases
 #alias_maps = hash:/etc/aliases, nis:mail.aliases
@@ -417,7 +416,7 @@ alias_database = hash:/etc/aliases
 # "Maildir/" for qmail-style delivery (the / is required).
 #
 #home_mailbox = Mailbox
-#home_mailbox = Maildir/
+home_mailbox = Maildir/
  
 # The mail_spool_directory parameter specifies the directory where
 # UNIX-style mailboxes are kept. The default setting depends on the
@@ -572,6 +571,19 @@ alias_database = hash:/etc/aliases
 #
 #smtpd_banner = $myhostname ESMTP $mail_name
 #smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
+smtpd_banner = $myhostname ESMTP "Version not Available"
+# add follows to the end
+# limit an email size for 10M
+message_size_limit = 10485760
+# limit a mailbox for 1G
+mailbox_size_limit = 1073741824
+# for SMTP-Auth
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_local_domain = $myhostname
+smtpd_recipient_restrictions = permit_mynetworks,permit_auth_destination,permit_sasl_authenticated,reject
 
 # PARALLEL DELIVERY TO THE SAME DESTINATION
 #
